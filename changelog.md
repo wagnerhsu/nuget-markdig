@@ -1,5 +1,26 @@
 # Changelog
 
+## WIP
+- Allow non-ASCII characters in url domain names ([(PR #319)](https://github.com/lunet-io/markdig/pull/319))
+
+## 0.16.0 (25 Feb 2019)
+- Improve performance of emoji-abbreviation parser ([(PR #305)](https://github.com/lunet-io/markdig/pull/305))
+- Change output for math extension to use a rendering more compatible with existing Math JS libraries ([(PR #311)](https://github.com/lunet-io/markdig/pull/311))
+- Improve emphasis parser to allow to match more than 2 characters ([(PR #301)](https://github.com/lunet-io/markdig/pull/301))
+- Output attached attributes to a `<tr>` from a table row ([(PR #300)](https://github.com/lunet-io/markdig/pull/300))
+- Improve MarkdownObject.Descendants() search ([(PR #288)](https://github.com/lunet-io/markdig/pull/288))
+- Allow to pass a `MarkdownParserContext` ([(PR #285)](https://github.com/lunet-io/markdig/pull/285))
+
+## 0.15.7 (11 Jan 2019)
+- Add configurable leading count for ATX headers ([(PR #282)](https://github.com/lunet-io/markdig/pull/282))
+- Render XML well-formed boolean attribute ([(PR #281)](https://github.com/lunet-io/markdig/pull/281))
+
+## 0.15.6 (28 Dec 2018)
+- Fix potential hang when parsing LinkReferenceDefinition #278
+- Fix parsing of an invalid html entity (#277)
+- Fix IndexOutOfRangeException while parsing fenced code block with a single trailing space (#276)
+- Add tests for checking that ArgumentOutOfRangeException doesn't occur on invalid input md string (#275)
+
 ## 0.15.5 (11 Dec 2018)
 - Empty image alt text for link reference definitions ([(PR #254)](https://github.com/lunet-io/markdig/pull/254))
 - Fix AutoLink Match links without slash after domain ([(PR #260)](https://github.com/lunet-io/markdig/pull/260))
