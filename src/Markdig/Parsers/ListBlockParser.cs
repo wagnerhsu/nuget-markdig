@@ -1,5 +1,5 @@
 // Copyright (c) Alexandre Mutel. All rights reserved.
-// This file is licensed under the BSD-Clause 2 license. 
+// This file is licensed under the BSD-Clause 2 license.
 // See the license.txt file in the project root for more information.
 using System;
 using System.Collections.Generic;
@@ -97,7 +97,7 @@ namespace Markdig.Parsers
                 }
             }
 
-            // 5.2 List items 
+            // 5.2 List items
             // TODO: Check with specs, it is not clear that list marker or bullet marker must be followed by at least 1 space
 
             // If we have already a ListItemBlock, we are going to try to append to it
@@ -149,23 +149,23 @@ namespace Markdig.Parsers
 
                 // Update list-item source end position
                 listItem.UpdateSpanEnd(state.Line.End);
-                
+
                 return BlockState.Continue;
             }
 
             list.CountBlankLinesReset = 0;
 
-            int columWidth = listItem.ColumnWidth;
-            if (columWidth < 0)
+            int columnWidth = listItem.ColumnWidth;
+            if (columnWidth < 0)
             {
-                columWidth = -columWidth;
+                columnWidth = -columnWidth;
             }
 
-            if (state.Indent >= columWidth)
+            if (state.Indent >= columnWidth)
             {
-                if (state.Indent > columWidth && state.IsCodeIndent)
+                if (state.Indent > columnWidth && state.IsCodeIndent)
                 {
-                    state.GoToColumn(state.ColumnBeforeIndent + columWidth);
+                    state.GoToColumn(state.ColumnBeforeIndent + columnWidth);
                 }
 
                 // Update list-item source end position
@@ -179,14 +179,14 @@ namespace Markdig.Parsers
 
         private BlockState TryParseListItem(BlockProcessor state, Block block)
         {
-            // If we have a code indent and we are not in a ListItem, early exit
-            if (!(block is ListItemBlock) && state.IsCodeIndent)
+            var currentListItem = block as ListItemBlock;
+            var currentParent = block as ListBlock ?? (ListBlock)currentListItem?.Parent;
+
+            // We can early exit if we have a code indent and we are either (1) not in a ListItem, (2) preceded by a blank line, (3) in an unordered list
+            if (state.IsCodeIndent && (currentListItem is null || currentListItem.LastChild is BlankLineBlock || !currentParent.IsOrdered))
             {
                 return BlockState.None;
             }
-
-            var currentListItem = block as ListItemBlock;
-            var currentParent = block as ListBlock ?? (ListBlock)currentListItem?.Parent;
 
             var initColumnBeforeIndent = state.ColumnBeforeIndent;
             var initColumn = state.Column;
@@ -210,7 +210,7 @@ namespace Markdig.Parsers
                 return BlockState.None;
             }
 
-            // Gets the current character after a succesfull parsing of the list information
+            // Gets the current character after a successful parsing of the list information
             c = state.CurrentChar;
 
             // Item starting with a blank line

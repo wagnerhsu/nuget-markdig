@@ -1,7 +1,16 @@
 # Changelog
 
 ## WIP
+- Fix regression when escaping HTML characters ([(PR #340)](https://github.com/lunet-io/markdig/pull/340))
+
+## 0.17.0 (10 May 2019)
+- Update to latest CommonMark specs 0.29 ([(PR #327)](https://github.com/lunet-io/markdig/pull/327))
+- Add `AutoLinkOptions` with `OpenInNewWindow`, `UseHttpsForWWWLinks` ([(PR #327)](https://github.com/lunet-io/markdig/pull/327))
+- Add `DisableHeadings` extension method to `MarkdownPipelineBuilder` ([(PR #327)](https://github.com/lunet-io/markdig/pull/327))
+- Drop support for netstandard1.1 and Portable Class Libraries ([(PR #319)](https://github.com/lunet-io/markdig/pull/319))
 - Allow non-ASCII characters in url domain names ([(PR #319)](https://github.com/lunet-io/markdig/pull/319))
+- Add better support for youtu.be link ([(PR #336)](https://github.com/lunet-io/markdig/pull/336))
+- Fix backsticks in Markdown.Normalize ([(PR #334)](https://github.com/lunet-io/markdig/pull/334))
 
 ## 0.16.0 (25 Feb 2019)
 - Improve performance of emoji-abbreviation parser ([(PR #305)](https://github.com/lunet-io/markdig/pull/305))
@@ -28,7 +37,7 @@
 - Ensuring line breaks when renderer does not have html enabled ([(PR #270)](https://github.com/lunet-io/markdig/pull/270))
 
 ## 0.15.4 (07 Oct 2018)
-- Add autolink domain GFM validation ([(PR #239)](https://github.com/lunet-io/markdig/pull/253))
+- Add autolink domain GFM validation ([(PR #253)](https://github.com/lunet-io/markdig/pull/253))
 
 ## 0.15.3 (15 Sep 2018)
 - Add support for RTL ([(PR #239)](https://github.com/lunet-io/markdig/pull/239))
@@ -135,7 +144,7 @@
 ## 0.8.3
 - fix NullReferenceException with Gridtables extension when a single `+` is entered on a line
 ## 0.8.2
-- fix potential cast exception with Abreviation extension and empty literals
+- fix potential cast exception with Abbreviation extension and empty literals
 ## 0.8.1
 - new extension to disable URI escaping for non-US-ASCII characters to workaround a bug in Edge/IE
 - Fix an issue with abbreviations with left/right multiple non-punctuation/space characters
