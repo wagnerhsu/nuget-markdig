@@ -17,11 +17,7 @@ namespace Markdig
     /// </summary>
     public static partial class Markdown
     {
-#if UAP
-        public static readonly string Version = typeof(Markdown).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-#else
         public static readonly string Version = ((AssemblyFileVersionAttribute) typeof(Markdown).Assembly.GetCustomAttributes(typeof(AssemblyFileVersionAttribute), false)[0]).Version;
-#endif
 
         /// <summary>
         /// Normalizes the specified markdown to a normalized markdown text.
@@ -73,9 +69,18 @@ namespace Markdig
         public static string ToHtml(string markdown, MarkdownPipeline pipeline = null)
         {
             if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-            var writer = new StringWriter();
-            ToHtml(markdown, writer, pipeline);
-            return writer.ToString();
+            pipeline = pipeline ?? new MarkdownPipelineBuilder().Build();
+            pipeline = CheckForSelfPipeline(pipeline, markdown);
+
+            var renderer = pipeline.GetCacheableHtmlRenderer();
+
+            var document = Parse(markdown, pipeline);
+            renderer.Render(document);
+            renderer.Writer.Flush();
+
+            string html = renderer.Writer.ToString();
+            pipeline.ReleaseCacheableHtmlRenderer(renderer);
+            return html;
         }
 
         /// <summary>

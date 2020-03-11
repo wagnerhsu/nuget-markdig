@@ -28,6 +28,8 @@ namespace Markdig.Parsers
         private readonly ProcessDocumentDelegate documentProcessed;
         private readonly bool preciseSourceLocation;
 
+        private readonly int roughLineCountEstimate;
+
         private LineReader lineReader;
 
         /// <summary>
@@ -42,6 +44,8 @@ namespace Markdig.Parsers
         {
             if (text == null) throw new ArgumentNullException(nameof(text));
             if (pipeline == null) throw new ArgumentNullException(nameof(pipeline));
+
+            roughLineCountEstimate = text.Length / 40;
             text = FixupZero(text);
             lineReader = new LineReader(text);
             preciseSourceLocation = pipeline.PreciseSourceLocation;
@@ -82,13 +86,16 @@ namespace Markdig.Parsers
         }
 
         /// <summary>
-        /// Parses the current <see cref="Reader"/> into a Markdown <see cref="MarkdownDocument"/>.
+        /// Parses the current <see cref="lineReader"/> into a Markdown <see cref="MarkdownDocument"/>.
         /// </summary>
         /// <returns>A document instance</returns>
         private MarkdownDocument Parse()
         {
             if (preciseSourceLocation)
-                document.LineStartIndexes = new List<int>();
+            {
+                // Save some List resizing allocations
+                document.LineStartIndexes = new List<int>(Math.Min(512, roughLineCountEstimate));
+            }
 
             ProcessBlocks();
             ProcessInlines();
@@ -109,11 +116,11 @@ namespace Markdig.Parsers
                 var lineText = lineReader.ReadLine();
                 
                 // If this is the end of file and the last line is empty
-                if (lineText == null)
+                if (lineText.Text is null)
                 {
                     break;
                 }
-                blockProcessor.ProcessLine(lineText.Value);
+                blockProcessor.ProcessLine(lineText);
             }
             blockProcessor.CloseAll(true);
         }
@@ -127,7 +134,7 @@ namespace Markdig.Parsers
             return text.Replace('\0', CharHelper.ZeroSafeChar);
         }
 
-        private class ContainerItemCache : DefaultObjectCache<ContainerItem>
+        private sealed class ContainerItemCache : DefaultObjectCache<ContainerItem>
         {
             protected override void Reset(ContainerItem instance)
             {

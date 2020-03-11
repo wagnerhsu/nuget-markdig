@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Markdig.Extensions.JiraLinks;
+using Markdig.Syntax;
 using NUnit.Framework;
 
 namespace Markdig.Tests
@@ -33,9 +34,9 @@ namespace Markdig.Tests
 
                 // If file creation times aren't preserved by git, add some leeway
                 // If specs have come from git, assume that they were regenerated since CI would fail otherwise
-                testTime = testTime.AddSeconds(2);
+                testTime = testTime.AddMinutes(3);
 
-                // This might not catch a changed spec every time, but should most of the time. Otherwise CI will catch it
+                // This might not catch a changed spec every time, but should at least sometimes. Otherwise CI will catch it
 
                 // This could also trigger, if a user has modified the spec file but reverted the change - can't think of a good workaround
                 Assert.Less(specTime, testTime,
@@ -151,8 +152,20 @@ namespace Markdig.Tests
         /// Contains the markdown source for specification files (order is the same as in <see cref="SpecsFilePaths"/>)
         /// </summary>
         public static readonly string[] SpecsMarkdown;
+        /// <summary>
+        /// Contains the markdown syntax tree for specification files (order is the same as in <see cref="SpecsFilePaths"/>)
+        /// </summary>
+        public static readonly MarkdownDocument[] SpecsSyntaxTrees;
+
         static TestParser()
         {
+            const string RunningInsideVisualStudioPath = "\\src\\.vs\\markdig\\";
+            int index = TestsDirectory.IndexOf(RunningInsideVisualStudioPath);
+            if (index != -1)
+            {
+                TestsDirectory = TestsDirectory.Substring(0, index) + "\\src\\Markdig.Tests";
+            }
+
             SpecsFilePaths = Directory.GetDirectories(TestsDirectory)
                 .Where(dir => dir.EndsWith("Specs"))
                 .SelectMany(dir => Directory.GetFiles(dir)
@@ -161,10 +174,16 @@ namespace Markdig.Tests
                 .ToArray();
 
             SpecsMarkdown = new string[SpecsFilePaths.Length];
+            SpecsSyntaxTrees = new MarkdownDocument[SpecsFilePaths.Length];
+
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .Build();
 
             for (int i = 0; i < SpecsFilePaths.Length; i++)
             {
-                SpecsMarkdown[i] = File.ReadAllText(SpecsFilePaths[i]);
+                string markdown = SpecsMarkdown[i] = File.ReadAllText(SpecsFilePaths[i]);
+                SpecsSyntaxTrees[i] = Markdown.Parse(markdown, pipeline);
             }
         }
     }

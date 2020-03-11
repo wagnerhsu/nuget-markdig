@@ -158,6 +158,10 @@ namespace Markdig.Syntax
             {
                 throw new ArgumentException("Cannot add this block as it as already attached to another container (block.Parent != null)");
             }
+            if (index < 0 || index > Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
             if (Count == children.Length)
             {
                 EnsureCapacity(Count + 1);
@@ -189,12 +193,17 @@ namespace Markdig.Syntax
         {
             get
             {
-                if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
-                return children[index];
+                var array = children;
+                if ((uint)index >= (uint)array.Length || index >= Count)
+                {
+                    ThrowHelper.ThrowIndexOutOfRangeException();
+                    return null;
+                }
+                return array[index];
             }
             set
             {
-                if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+                if ((uint)index >= (uint)Count) ThrowHelper.ThrowIndexOutOfRangeException();
                 children[index] = value;
             }
         }

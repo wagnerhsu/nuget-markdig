@@ -36,6 +36,7 @@ using System;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace Markdig.Helpers
 {
@@ -130,9 +131,9 @@ namespace Markdig.Helpers
             int result = 0;
             for (int i = 0; i < text.Length; i++)
             {
-                var character = Char.ToUpperInvariant(text[i]);
+                var character = char.ToUpperInvariant(text[i]);
                 var candidate = romanMap[character];
-                if (i + 1 < text.Length && candidate < romanMap[Char.ToUpperInvariant(text[i + 1])])
+                if (i + 1 < text.Length && candidate < romanMap[char.ToUpperInvariant(text[i + 1])])
                 {
                     result -= candidate;
                 }
@@ -147,7 +148,9 @@ namespace Markdig.Helpers
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
         public static int AddTab(int column)
         {
-            return ((column + TabSize) / TabSize) * TabSize;
+            // return ((column + TabSize) / TabSize) * TabSize;
+            Debug.Assert(TabSize == 4, "Change the AddTab implementation if TabSize is no longer a power of 2");
+            return TabSize + (column & ~(TabSize - 1));
         }
 
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
@@ -174,13 +177,13 @@ namespace Markdig.Helpers
         {
             // 2.1 Characters and lines 
             // A whitespace character is a space(U + 0020), tab(U + 0009), newline(U + 000A), line tabulation (U + 000B), form feed (U + 000C), or carriage return (U + 000D).
-            return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';
+            return c <= ' ' && (c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r');
         }
 
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
         public static bool IsControl(this char c)
         {
-            return c < ' ' || Char.IsControl(c);
+            return c < ' ' || char.IsControl(c);
         }
 
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
@@ -193,7 +196,7 @@ namespace Markdig.Helpers
         //[MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
         public static bool IsWhiteSpaceOrZero(this char c)
         {
-            return IsWhitespace(c) || IsZero(c);
+            return IsZero(c) || IsWhitespace(c);
         }
 
         // Note that we are not considering the character & as a punctuation in HTML
@@ -295,13 +298,13 @@ namespace Markdig.Helpers
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
         public static bool IsAlphaUpper(this char c)
         {
-            return c >= 'A' && c <= 'Z';
+            return (uint)(c - 'A') <= ('Z' - 'A');
         }
 
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
         public static bool IsAlpha(this char c)
         {
-            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+            return (uint)((c - 'A') & ~0x20) <= ('Z' - 'A');
         }
 
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
@@ -313,7 +316,7 @@ namespace Markdig.Helpers
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
         public static bool IsDigit(this char c)
         {
-            return c >= '0' && c <= '9';
+            return (uint)(c - '0') <= ('9' - '0');
         }
 
         public static bool IsAsciiPunctuation(this char c)
@@ -368,14 +371,18 @@ namespace Markdig.Helpers
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
         public static bool IsHighSurrogate(char c)
         {
-            return ((c >= HighSurrogateStart) && (c <= HighSurrogateEnd));
+            return IsInInclusiveRange(c, HighSurrogateStart, HighSurrogateEnd);
         }
 
         [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
         public static bool IsLowSurrogate(char c)
         {
-            return ((c >= LowSurrogateStart) && (c <= LowSurrogateEnd));
+            return IsInInclusiveRange(c, LowSurrogateStart, LowSurrogateEnd);
         }
+
+        [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
+        private static bool IsInInclusiveRange(char c, char min, char max)
+            => (uint) (c - min) <= (uint) (max - min);
 
         public static int ConvertToUtf32(char highSurrogate, char lowSurrogate)
         {
@@ -390,13 +397,14 @@ namespace Markdig.Helpers
             return (((highSurrogate - HighSurrogateStart) * 0x400) + (lowSurrogate - LowSurrogateStart) + UnicodePlane01Start);
         }
 
-        public static IEnumerable<int> ToUtf32(string text)
+        public static IEnumerable<int> ToUtf32(StringSlice text)
         {
-            for (int i = 0; i < text.Length; i++)
+            for (int i = text.Start; i <= text.End; i++)
             {
-                if (IsHighSurrogate(text[i]) && i < text.Length - 1 && IsLowSurrogate(text[i + 1]))
+                if (IsHighSurrogate(text[i]) && i < text.End && IsLowSurrogate(text[i + 1]))
                 {
-                    yield return ConvertToUtf32(text[i], text[i + 1]);
+                    Debug.Assert(char.IsSurrogatePair(text[i], text[i + 1]));
+                    yield return char.ConvertToUtf32(text[i], text[i + 1]);
                 }
                 else
                 {

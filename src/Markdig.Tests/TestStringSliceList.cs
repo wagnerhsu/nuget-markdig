@@ -1,8 +1,9 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System.Collections.Generic;
 using System.Text;
 using Markdig.Helpers;
 using Markdig.Syntax;
+using System;
 
 namespace Markdig.Tests
 {
@@ -27,6 +28,8 @@ namespace Markdig.Tests
 
             var chars = ToString(text.ToCharIterator());
             TextAssert.AreEqual("ABC\nE\nF", chars.ToString());
+
+            TextAssert.AreEqual("ABC\nE\nF", text.ToString());
         }
 
         [Test]
@@ -81,8 +84,18 @@ namespace Markdig.Tests
         public void TestSkipWhitespaces()
         {
             var text = new StringLineGroup("             ABC").ToCharIterator();
-            Assert.True(text.TrimStart());
+            Assert.False(text.TrimStart());
             Assert.AreEqual('A', text.CurrentChar);
+
+            text = new StringLineGroup("        ").ToCharIterator();
+            Assert.True(text.TrimStart());
+            Assert.AreEqual('\0', text.CurrentChar);
+
+            var slice = new StringSlice("             ABC");
+            Assert.False(slice.TrimStart());
+
+            slice = new StringSlice("        ");
+            Assert.True(slice.TrimStart());
         }
 
         [Test]
@@ -115,6 +128,32 @@ namespace Markdig.Tests
 
             var result = ToString(text);
             TextAssert.AreEqual("ABC  \n  DEF ", result);
+        }
+
+        [Test]
+        public void TestStringLineGroupIteratorPeekChar()
+        {
+            var iterator = new StringLineGroup(4)
+            {
+                new StringSlice("ABC"),
+                new StringSlice("E"),
+                new StringSlice("F")
+            }.ToCharIterator();
+
+            Assert.AreEqual('A', iterator.CurrentChar);
+            Assert.AreEqual('A', iterator.PeekChar(0));
+            Assert.AreEqual('B', iterator.PeekChar());
+            Assert.AreEqual('B', iterator.PeekChar(1));
+            Assert.AreEqual('C', iterator.PeekChar(2));
+            Assert.AreEqual('\n', iterator.PeekChar(3));
+            Assert.AreEqual('E', iterator.PeekChar(4));
+            Assert.AreEqual('\n', iterator.PeekChar(5));
+            Assert.AreEqual('F', iterator.PeekChar(6));
+            Assert.AreEqual('\0', iterator.PeekChar(7)); // There is no \n appended to the last line
+            Assert.AreEqual('\0', iterator.PeekChar(8));
+            Assert.AreEqual('\0', iterator.PeekChar(100));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => iterator.PeekChar(-1));
         }
     }
 }
