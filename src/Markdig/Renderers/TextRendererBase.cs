@@ -1,6 +1,7 @@
 // Copyright (c) Alexandre Mutel. All rights reserved.
 // This file is licensed under the BSD-Clause 2 license. 
 // See the license.txt file in the project root for more information.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,7 +15,7 @@ namespace Markdig.Renderers
     /// <summary>
     /// A text based <see cref="IMarkdownRenderer"/>.
     /// </summary>
-    /// <seealso cref="Markdig.Renderers.RendererBase" />
+    /// <seealso cref="RendererBase" />
     public abstract class TextRendererBase : RendererBase
     {
         private TextWriter writer;
@@ -23,10 +24,10 @@ namespace Markdig.Renderers
         /// Initializes a new instance of the <see cref="TextRendererBase"/> class.
         /// </summary>
         /// <param name="writer">The writer.</param>
-        /// <exception cref="System.ArgumentNullException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         protected TextRendererBase(TextWriter writer)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
+            if (writer == null) ThrowHelper.ArgumentNullException_writer();
             this.Writer = writer;
             // By default we output a newline with '\n' only even on Windows platforms
             Writer.NewLine = "\n";
@@ -35,7 +36,7 @@ namespace Markdig.Renderers
         /// <summary>
         /// Gets or sets the writer.
         /// </summary>
-        /// <exception cref="System.ArgumentNullException">if the value is null</exception>
+        /// <exception cref="ArgumentNullException">if the value is null</exception>
         public TextWriter Writer
         {
             get { return writer; }
@@ -43,7 +44,7 @@ namespace Markdig.Renderers
             {
                 if (value == null)
                 {
-                    throw new ArgumentNullException(nameof(value));
+                    ThrowHelper.ArgumentNullException(nameof(value));
                 }
 
                 writer = value;
@@ -66,7 +67,7 @@ namespace Markdig.Renderers
     /// Typed <see cref="TextRendererBase"/>.
     /// </summary>
     /// <typeparam name="T">Type of the renderer</typeparam>
-    /// <seealso cref="Markdig.Renderers.RendererBase" />
+    /// <seealso cref="RendererBase" />
     public abstract class TextRendererBase<T> : TextRendererBase where T : TextRendererBase<T>
     {
         private bool previousWasLine;
@@ -97,7 +98,7 @@ namespace Markdig.Renderers
             }
             else
             {
-                throw new InvalidOperationException("Cannot reset this TextWriter instance");
+                ThrowHelper.InvalidOperationException("Cannot reset this TextWriter instance");
             }
 
             previousWasLine = true;
@@ -119,7 +120,7 @@ namespace Markdig.Renderers
 
         public void PushIndent(string indent)
         {
-            if (indent == null) throw new ArgumentNullException(nameof(indent));
+            if (indent == null) ThrowHelper.ArgumentNullException(nameof(indent));
             indents.Add(indent);
         }
 
@@ -147,7 +148,7 @@ namespace Markdig.Renderers
         /// </summary>
         /// <param name="content">The content.</param>
         /// <returns>This instance</returns>
-        [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Write(string content)
         {
             WriteIndent();
@@ -161,7 +162,7 @@ namespace Markdig.Renderers
         /// </summary>
         /// <param name="slice">The slice.</param>
         /// <returns>This instance</returns>
-        [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Write(ref StringSlice slice)
         {
             if (slice.Start > slice.End)
@@ -176,7 +177,7 @@ namespace Markdig.Renderers
         /// </summary>
         /// <param name="slice">The slice.</param>
         /// <returns>This instance</returns>
-        [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Write(StringSlice slice)
         {
             return Write(ref slice);
@@ -187,7 +188,7 @@ namespace Markdig.Renderers
         /// </summary>
         /// <param name="content">The content.</param>
         /// <returns>This instance</returns>
-        [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Write(char content)
         {
             WriteIndent();
@@ -241,7 +242,7 @@ namespace Markdig.Renderers
         /// Writes a newline.
         /// </summary>
         /// <returns>This instance</returns>
-        [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T WriteLine()
         {
             WriteIndent();
@@ -255,7 +256,7 @@ namespace Markdig.Renderers
         /// </summary>
         /// <param name="content">The content.</param>
         /// <returns>This instance</returns>
-        [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T WriteLine(string content)
         {
             WriteIndent();
@@ -269,10 +270,10 @@ namespace Markdig.Renderers
         /// </summary>
         /// <param name="leafBlock">The leaf block.</param>
         /// <returns>This instance</returns>
-        [MethodImpl(MethodImplOptionPortable.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T WriteLeafInline(LeafBlock leafBlock)
         {
-            if (leafBlock == null) throw new ArgumentNullException(nameof(leafBlock));
+            if (leafBlock == null) ThrowHelper.ArgumentNullException_leafBlock();
             var inline = (Inline) leafBlock.Inline;
             if (inline != null)
             {
