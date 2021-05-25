@@ -1,5 +1,5 @@
 // Copyright (c) Alexandre Mutel. All rights reserved.
-// This file is licensed under the BSD-Clause 2 license. 
+// This file is licensed under the BSD-Clause 2 license.
 // See the license.txt file in the project root for more information.
 using System;
 using System.Collections.Generic;
@@ -82,6 +82,24 @@ namespace mdtoc
             var writer = Console.Out;
             // Use this htmlWriter to write content of headings into link label
             var htmlWriter = new HtmlRenderer(writer) {EnableHtmlForInline = true};
+            foreach (var heading in headings)
+            {
+                var indent = heading.Level - minHeading;
+                for (int i = 0; i < indent; i++)
+                {
+                    //            - Start Of Heading
+                    writer.Write("  ");
+                }
+                writer.Write("- [");
+                htmlWriter.WriteLeafInline(heading);
+                writer.Write($"](#{heading.GetAttributes().Id})");
+                writer.WriteLine();
+            }
+
+            using var sw = new StreamWriter(@"c:\temp\mtdoc.log");
+            writer = sw;
+            // Use this htmlWriter to write content of headings into link label
+            htmlWriter = new HtmlRenderer(writer) {EnableHtmlForInline = true};
             foreach (var heading in headings)
             {
                 var indent = heading.Level - minHeading;

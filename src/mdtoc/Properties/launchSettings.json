@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "mdtoc": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\temp\\Markdown\\01.md"
+    }
+  }
+}
