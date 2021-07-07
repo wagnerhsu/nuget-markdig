@@ -47,7 +47,7 @@ namespace Markdig.Helpers
         /// </summary>
         /// <param name="entity">The entity without <c>&amp;</c> and <c>;</c> symbols, for example, <c>copy</c>.</param>
         /// <returns>The unicode character set or <c>null</c> if the entity was not recognized.</returns>
-        public static string DecodeEntity(ReadOnlySpan<char> entity)
+        public static string? DecodeEntity(ReadOnlySpan<char> entity)
         {
             if (EntityMap.TryMatchExact(entity, out KeyValuePair<string, string> result))
                 return result.Value;

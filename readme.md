@@ -1,4 +1,4 @@
-# Markdig [![Build Status](https://github.com/lunet-io/markdig/workflows/ci/badge.svg?branch=master)](https://github.com/lunet-io/markdig/actions) [![Coverage Status](https://coveralls.io/repos/github/lunet-io/markdig/badge.svg?branch=master)](https://coveralls.io/github/lunet-io/markdig?branch=master) [![NuGet](https://img.shields.io/nuget/v/Markdig.svg)](https://www.nuget.org/packages/Markdig/) [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FRGHXBTP442JL)
+# Markdig [![Build Status](https://github.com/lunet-io/markdig/workflows/ci/badge.svg?branch=master)](https://github.com/lunet-io/markdig/actions) [![Coverage Status](https://coveralls.io/repos/github/xoofx/markdig/badge.svg?branch=master)](https://coveralls.io/github/xoofx/markdig?branch=master) [![NuGet](https://img.shields.io/nuget/v/Markdig.svg)](https://www.nuget.org/packages/Markdig/) [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FRGHXBTP442JL)
 
 <img align="right" width="160px" height="160px" src="img/markdig.png">
 
@@ -19,6 +19,7 @@ You can **try Markdig online** and compare it to other implementations on [babel
   - including **GFM fenced code blocks**.  
 - **Extensible** architecture
   - Even the core Markdown/CommonMark parsing is pluggable, so it allows to disable builtin Markdown/Commonmark parsing (e.g [Disable HTML parsing](https://github.com/lunet-io/markdig/blob/7964bd0160d4c18e4155127a4c863d61ebd8944a/src/Markdig/MarkdownExtensions.cs#L306)) or change behaviour (e.g change matching `#` of a headers with `@`)   
+- [**Roundtrip support**](./src/Markdig/Roundtrip.md): Parses trivia (whitespace, newlines and other characters) to support lossless parse ⭢ render roundtrip. This enables changing markdown documents without introducing undesired trivia changes.
 - Built-in with **20+ extensions**, including:
   - 2 kind of tables:
     - [**Pipe tables**](src/Markdig.Tests/Specs/PipeTableSpecs.md) (inspired from GitHub tables and [PanDoc - Pipe Tables](http://pandoc.org/README.html#extension-pipe_tables))
@@ -59,6 +60,7 @@ If you are looking for support for an old .NET Framework 3.5 or 4.0, you can dow
 - [**WPF/XAML Markdown Renderer**: `markdig.wpf`](https://github.com/Kryptos-FR/markdig.wpf)
 - [**WPF/XAML Markdown Renderer**: `Neo.Markdig.Xaml`](https://github.com/neolithos/NeoMarkdigXaml)
 - [**Syntax highlighting**: `Markdig.SyntaxHighlighting`](https://github.com/RichardSlater/Markdig.SyntaxHighlighting)
+- [**Syntax highlighting using Prism.js**: `WebStoating.Markdig.Prism`](https://github.com/ilich/Markdig.Prism)
 - [**Embedded C# scripting**: `Markdig.Extensions.ScriptCs`](https://github.com/macaba/Markdig.Extensions.ScriptCs)
 
 ## Documentation
@@ -93,6 +95,8 @@ In order to activate most of all advanced extensions (except Emoji, SoftLine as 
 var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 var result = Markdown.ToHtml("This is a text with some *emphasis*", pipeline);
 ```
+
+[Try it online!](https://dotnetfiddle.net/GoZXyI)
 
 You can have a look at the [MarkdownExtensions](https://github.com/lunet-io/markdig/blob/master/src/Markdig/MarkdownExtensions.cs) that describes all actionable extensions (by modifying the MarkdownPipeline)
 

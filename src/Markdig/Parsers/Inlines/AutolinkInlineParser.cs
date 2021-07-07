@@ -12,12 +12,12 @@ namespace Markdig.Parsers.Inlines
     /// An inline parser for parsing <see cref="AutolinkInline"/>.
     /// </summary>
     /// <seealso cref="InlineParser" />
-    public class AutolineInlineParser : InlineParser
+    public class AutolinkInlineParser : InlineParser
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AutolineInlineParser"/> class.
+        /// Initializes a new instance of the <see cref="AutolinkInlineParser"/> class.
         /// </summary>
-        public AutolineInlineParser()
+        public AutolinkInlineParser()
         {
             OpeningCharacters = new[] {'<'};
             EnableHtmlParsing = true;
@@ -33,12 +33,11 @@ namespace Markdig.Parsers.Inlines
             var saved = slice;
             int line;
             int column;
-            if (LinkHelper.TryParseAutolink(ref slice, out string link, out bool isEmail))
+            if (LinkHelper.TryParseAutolink(ref slice, out string? link, out bool isEmail))
             {
-                processor.Inline = new AutolinkInline()
+                processor.Inline = new AutolinkInline(link)
                 {
                     IsEmail = isEmail,
-                    Url = link,
                     Span = new SourceSpan(processor.GetSourcePosition(saved.Start, out line, out column), processor.GetSourcePosition(slice.Start - 1)),
                     Line = line,
                     Column = column
@@ -47,14 +46,13 @@ namespace Markdig.Parsers.Inlines
             else if (EnableHtmlParsing)
             {
                 slice = saved;
-                if (!HtmlHelper.TryParseHtmlTag(ref slice, out string htmlTag))
+                if (!HtmlHelper.TryParseHtmlTag(ref slice, out string? htmlTag))
                 {
                     return false;
                 }
 
-                processor.Inline = new HtmlInline()
+                processor.Inline = new HtmlInline(htmlTag)
                 {
-                    Tag = htmlTag,
                     Span = new SourceSpan(processor.GetSourcePosition(saved.Start, out line, out column), processor.GetSourcePosition(slice.Start - 1)),
                     Line = line,
                     Column = column

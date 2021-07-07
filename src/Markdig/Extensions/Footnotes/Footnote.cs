@@ -16,14 +16,13 @@ namespace Markdig.Extensions.Footnotes
     {
         public Footnote(BlockParser parser) : base(parser)
         {
-            Links = new List<FootnoteLink>();
             Order = -1;
         }
 
         /// <summary>
         /// Gets or sets the label used by this footnote.
         /// </summary>
-        public string Label { get; set; }
+        public string? Label { get; set; }
 
         /// <summary>
         /// Gets or sets the order of this footnote (determined by the order of the <see cref="FootnoteLink"/> in the document)
@@ -33,7 +32,7 @@ namespace Markdig.Extensions.Footnotes
         /// <summary>
         /// Gets the links referencing this footnote.
         /// </summary>
-        public List<FootnoteLink> Links { get; private set; }
+        public List<FootnoteLink> Links { get; } = new ();
 
         /// <summary>
         /// The label span

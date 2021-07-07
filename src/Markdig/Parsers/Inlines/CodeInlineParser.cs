@@ -1,10 +1,11 @@
 // Copyright (c) Alexandre Mutel. All rights reserved.
-// This file is licensed under the BSD-Clause 2 license. 
+// This file is licensed under the BSD-Clause 2 license.
 // See the license.txt file in the project root for more information.
 
 using Markdig.Helpers;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
+using System;
 
 namespace Markdig.Parsers.Inlines
 {
@@ -34,6 +35,7 @@ namespace Markdig.Parsers.Inlines
 
             // Match the opened sticks
             int openSticks = slice.CountAndSkipChar(match);
+            int contentStart = slice.Start;
             int closeSticks = 0;
 
             char c = slice.CurrentChar;
@@ -52,6 +54,7 @@ namespace Markdig.Parsers.Inlines
             // whitespace from the opening or closing backtick strings.
 
             bool allSpace = true;
+            var contentEnd = -1;
 
             while (c != '\0')
             {
@@ -60,9 +63,16 @@ namespace Markdig.Parsers.Inlines
                 {
                     c = ' ';
                 }
+                else if (c == '\r')
+                {
+                    slice.SkipChar();
+                    c = slice.CurrentChar;
+                    continue;
+                }
 
                 if (c == match)
                 {
+                    contentEnd = slice.Start;
                     closeSticks = slice.CountAndSkipChar(match);
 
                     if (openSticks == closeSticks)
@@ -100,13 +110,17 @@ namespace Markdig.Parsers.Inlines
                     content = builder.ToString();
                 }
 
-                processor.Inline = new CodeInline()
+                int delimiterCount = Math.Min(openSticks, closeSticks);
+                var spanStart = processor.GetSourcePosition(startPosition, out int line, out int column);
+                var spanEnd = processor.GetSourcePosition(slice.Start - 1);
+                processor.Inline = new CodeInline(content)
                 {
                     Delimiter = match,
-                    Content = content,
-                    Span = new SourceSpan(processor.GetSourcePosition(startPosition, out int line, out int column), processor.GetSourcePosition(slice.Start - 1)),
+                    ContentWithTrivia = new StringSlice(slice.Text, contentStart, contentEnd - 1),
+                    Span = new SourceSpan(spanStart, spanEnd),
                     Line = line,
-                    Column = column
+                    Column = column,
+                    DelimiterCount = delimiterCount,
                 };
                 isMatching = true;
             }

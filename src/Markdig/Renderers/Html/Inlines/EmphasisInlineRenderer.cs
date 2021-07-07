@@ -18,7 +18,7 @@ namespace Markdig.Renderers.Html.Inlines
         /// </summary>
         /// <param name="obj">The object.</param>
         /// <returns>The HTML tag associated to this <see cref="EmphasisInline"/> object</returns>
-        public delegate string GetTagDelegate(EmphasisInline obj);
+        public delegate string? GetTagDelegate(EmphasisInline obj);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EmphasisInlineRenderer"/> class.
@@ -35,16 +35,16 @@ namespace Markdig.Renderers.Html.Inlines
 
         protected override void Write(HtmlRenderer renderer, EmphasisInline obj)
         {
-            string tag = null;
+            string? tag = null;
             if (renderer.EnableHtmlForInline)
             {
                 tag = GetTag(obj);
-                renderer.Write("<").Write(tag).WriteAttributes(obj).Write(">");
+                renderer.Write("<").Write(tag).WriteAttributes(obj).Write('>');
             }
             renderer.WriteChildren(obj);
             if (renderer.EnableHtmlForInline)
             {
-                renderer.Write("</").Write(tag).Write(">");
+                renderer.Write("</").Write(tag).Write('>');
             }
         }
 
@@ -53,9 +53,9 @@ namespace Markdig.Renderers.Html.Inlines
         /// </summary>
         /// <param name="obj">The object.</param>
         /// <returns></returns>
-        public string GetDefaultTag(EmphasisInline obj)
+        public string? GetDefaultTag(EmphasisInline obj)
         {
-            if (obj.DelimiterChar == '*' || obj.DelimiterChar == '_')
+            if (obj.DelimiterChar is '*' or '_')
             {
                 Debug.Assert(obj.DelimiterCount <= 2);
                 return obj.DelimiterCount == 2 ? "strong" : "em";

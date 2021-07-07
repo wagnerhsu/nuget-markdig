@@ -3,6 +3,7 @@
 // See the license.txt file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Markdig.Helpers
 {
@@ -12,7 +13,7 @@ namespace Markdig.Helpers
     /// <typeparam name="T">Type of the list item</typeparam>
     /// <seealso cref="List{T}" />
     /// <remarks>We use a typed list and don't use extension methods because it would pollute all list implements and the top level namespace.</remarks>
-    public class OrderedList<T> : List<T>
+    public class OrderedList<T> : List<T> where T: notnull
     {
         public OrderedList()
         {
@@ -24,7 +25,7 @@ namespace Markdig.Helpers
 
         public bool InsertBefore<TItem>(T item) where TItem : T
         {
-            if (item == null) ThrowHelper.ArgumentNullException_item();
+            if (item is null) ThrowHelper.ArgumentNullException_item();
             for (int i = 0; i < Count; i++)
             {
                 if (this[i] is TItem)
@@ -36,7 +37,7 @@ namespace Markdig.Helpers
             return false;
         }
 
-        public TItem Find<TItem>() where TItem : T
+        public TItem? Find<TItem>() where TItem : T
         {
             for (int i = 0; i < Count; i++)
             {
@@ -48,13 +49,13 @@ namespace Markdig.Helpers
             return default;
         }
 
-        public bool TryFind<TItem>(out TItem item) where TItem : T
+        public bool TryFind<TItem>([NotNullWhen(true)] out TItem? item) where TItem : T
         {
             item = Find<TItem>();
             return item != null;
         }
 
-        public TItem FindExact<TItem>() where TItem : T
+        public TItem? FindExact<TItem>() where TItem : T
         {
             for (int i = 0; i < Count; i++)
             {
@@ -84,7 +85,7 @@ namespace Markdig.Helpers
 
         public bool InsertAfter<TItem>(T item) where TItem : T
         {
-            if (item == null) ThrowHelper.ArgumentNullException_item();
+            if (item is null) ThrowHelper.ArgumentNullException_item();
             for (int i = 0; i < Count; i++)
             {
                 if (this[i] is TItem)

@@ -16,8 +16,8 @@ namespace Markdig.Tests
         {
             var text = new StringLineGroup(4)
             {
-                new StringSlice("ABC"),
-                new StringSlice("E"),
+                new StringSlice("ABC", NewLine.LineFeed),
+                new StringSlice("E", NewLine.LineFeed),
                 new StringSlice("F")
             };
 
@@ -35,8 +35,8 @@ namespace Markdig.Tests
         {
             var text = new StringLineGroup(4)
             {
-                new StringSlice("XABC") { Start = 1},
-                new StringSlice("YYE") { Start = 2},
+                new StringSlice("XABC", NewLine.LineFeed) { Start = 1},
+                new StringSlice("YYE", NewLine.LineFeed) { Start = 2},
                 new StringSlice("ZZZF") { Start = 3 }
             };
 
@@ -61,7 +61,7 @@ namespace Markdig.Tests
         {
             var text = new StringLineGroup(4)
             {
-                new StringSlice("ABCD"),
+                new StringSlice("ABCD", NewLine.LineFeed),
                 new StringSlice("EF"),
             }.ToCharIterator();
 
@@ -99,7 +99,7 @@ namespace Markdig.Tests
         [Test]
         public void TestStringLineGroupWithModifiedStart()
         {
-            var line1 = new StringSlice("  ABC");
+            var line1 = new StringSlice("  ABC", NewLine.LineFeed);
             line1.NextChar();
             line1.NextChar();
 
@@ -115,7 +115,7 @@ namespace Markdig.Tests
         [Test]
         public void TestStringLineGroupWithTrim()
         {
-            var line1 = new StringSlice("  ABC  ");
+            var line1 = new StringSlice("  ABC  ", NewLine.LineFeed);
             line1.NextChar();
             line1.NextChar();
 
@@ -133,8 +133,8 @@ namespace Markdig.Tests
         {
             var iterator = new StringLineGroup(4)
             {
-                new StringSlice("ABC"),
-                new StringSlice("E"),
+                new StringSlice("ABC", NewLine.LineFeed),
+                new StringSlice("E", NewLine.LineFeed),
                 new StringSlice("F")
             }.ToCharIterator();
 
@@ -152,6 +152,34 @@ namespace Markdig.Tests
             Assert.AreEqual('\0', iterator.PeekChar(100));
 
             Assert.Throws<ArgumentOutOfRangeException>(() => iterator.PeekChar(-1));
+        }
+
+        [Test]
+        public void TestIteratorSkipChar()
+        {
+            var lineGroup = new StringLineGroup(4)
+            {
+                new StringSlice("ABC", NewLine.LineFeed),
+                new StringSlice("E", NewLine.LineFeed)
+            };
+
+            Test(lineGroup.ToCharIterator());
+
+            Test(new StringSlice("ABC\nE\n"));
+
+            Test(new StringSlice("Foo\nABC\nE\n", 4, 9));
+
+            static void Test<T>(T iterator) where T : ICharIterator
+            {
+                Assert.AreEqual('A', iterator.CurrentChar); iterator.SkipChar();
+                Assert.AreEqual('B', iterator.CurrentChar); iterator.SkipChar();
+                Assert.AreEqual('C', iterator.CurrentChar); iterator.SkipChar();
+                Assert.AreEqual('\n', iterator.CurrentChar); iterator.SkipChar();
+                Assert.AreEqual('E', iterator.CurrentChar); iterator.SkipChar();
+                Assert.AreEqual('\n', iterator.CurrentChar); iterator.SkipChar();
+                Assert.AreEqual('\0', iterator.CurrentChar); iterator.SkipChar();
+                Assert.AreEqual('\0', iterator.CurrentChar); iterator.SkipChar();
+            }
         }
     }
 }

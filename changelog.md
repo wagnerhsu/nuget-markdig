@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.25.0 (10 June 2021)
+- Fix regression when parsing link reference definitions (#543)
+- Make digits in JiraKey's posible ([PR #548](https://github.com/lunet-io/markdig/pull/548))
+
+## 0.24.0 (20 Mar 2021)
+- Add support for roundtrip Markdown ([PR #481](https://github.com/lunet-io/markdig/pull/481))
+- Introduction of nullability ([PR #522](https://github.com/lunet-io/markdig/pull/522) [PR #524](https://github.com/lunet-io/markdig/pull/524) [PR #525](https://github.com/lunet-io/markdig/pull/525) [PR #526](https://github.com/lunet-io/markdig/pull/526) [PR #527](https://github.com/lunet-io/markdig/pull/527))
+- Various internal cleanup and small performance improvements ([PR #521](https://github.com/lunet-io/markdig/pull/521) [PR #524](https://github.com/lunet-io/markdig/pull/524) [PR #525](https://github.com/lunet-io/markdig/pull/525) [PR #529](https://github.com/lunet-io/markdig/pull/529) [PR #531](https://github.com/lunet-io/markdig/pull/531) [PR #532](https://github.com/lunet-io/markdig/pull/532))
+
+## 0.23.0 (16 Jan 2021)
+- Add depth limits to avoid pathological-case parsing times/StackOverflows (#500)
+- Breaking change: rename AutolineInlineParser to AutolinkInlineParser
+
+## 0.22.1 (2 Dec 2020)
+- Update logo for NuGet package
+
+## 0.22.0 (05 Oct 2020)
+- Fix Setext headings in block quotes.
+- Fix tel: treated as autolink ([PR #478](https://github.com/lunet-io/markdig/pull/478))
+- Make Inline.FirstParentOfType public ([PR #474](https://github.com/lunet-io/markdig/pull/474))
+- Fix `&` to be parsed as a punctuation while it was detected as a html entity in certain cases ([PR #471](https://github.com/lunet-io/markdig/pull/471))
+- Add ParentBlock property to ContainerInline ([PR #468](https://github.com/lunet-io/markdig/pull/468))
+
+## 0.21.1 (17 Aug 2020)
+- Fix Markdig.Signed on GitHub Actions
+
+## 0.21.0 (17 Aug 2020)
+- Restore support for .NET 4.5 (#)
+- Add IReadonlyList interface to ContainerBlock to unify and simplify enumeration (#425)
+- Fix relative uri detection to be cross-platform compatible (#430)
+- Escape URLs scheme (#431)
+- Fix media links (#435)
+- Fix parsing math blocks with no leading or trailing whitespace (#452)
+- Add support for autolink `tel:` uri (#453)
+- Fallback to non-punycode encoding for invalid IDN urls (#449)
+- Pipe Tables: Normalize using header column count (#455)
+- Expose IndentCount of FencedCodeBlock (#464)
+
 ## 0.20.0 (18 Apr 2020)
 - Markdig is now compatible only with `NETStandard 2.0`, `NETStandard 2.1`, `NETCoreApp 2.1` and `NETCoreApp 3.1`.
 - Many performance improvements from [PR #416](https://github.com/lunet-io/markdig/pull/416) 

@@ -2,6 +2,7 @@
 // This file is licensed under the BSD-Clause 2 license. 
 // See the license.txt file in the project root for more information.
 
+using Markdig.Helpers;
 using Markdig.Parsers;
 
 namespace Markdig.Syntax
@@ -25,12 +26,12 @@ namespace Markdig.Syntax
         /// <summary>
         /// Gets the parent of this container. May be null.
         /// </summary>
-        ContainerBlock Parent { get; }
+        ContainerBlock? Parent { get; }
 
         /// <summary>
         /// Gets the parser associated to this instance.
         /// </summary>
-        BlockParser Parser { get; }
+        BlockParser? Parser { get; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is still open.
@@ -50,11 +51,23 @@ namespace Markdig.Syntax
         /// <summary>
         /// Occurs when the process of inlines begin.
         /// </summary>
-        event ProcessInlineDelegate ProcessInlinesBegin;
+        event ProcessInlineDelegate? ProcessInlinesBegin;
 
         /// <summary>
         /// Occurs when the process of inlines ends for this instance.
         /// </summary>
-        event ProcessInlineDelegate ProcessInlinesEnd;
+        event ProcessInlineDelegate? ProcessInlinesEnd;
+
+        /// <summary>
+        /// Trivia occurring before this block
+        /// </summary>
+        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise <see cref="StringSlice.IsEmpty"/>.
+        StringSlice TriviaBefore { get; set; }
+
+        /// <summary>
+        /// Trivia occurring after this block
+        /// </summary>
+        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise <see cref="StringSlice.IsEmpty"/>.
+        StringSlice TriviaAfter { get; set; }
     }
 }

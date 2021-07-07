@@ -34,7 +34,6 @@ namespace Markdig.Parsers
             }
 
             var startPosition = processor.Start;
-
             var line = processor.Line;
 
             // 4.1 Thematic breaks 
@@ -73,8 +72,8 @@ namespace Markdig.Parsers
             var isSetexHeading = previousParagraph != null && breakChar == '-' && !hasInnerSpaces;
             if (isSetexHeading)
             {
-                var parent = previousParagraph.Parent;
-                if (parent is QuoteBlock || (parent is ListItemBlock && previousParagraph.Column != processor.Column))
+                var parent = previousParagraph!.Parent!;
+                if (previousParagraph.Column != processor.Column && (parent is QuoteBlock or ListItemBlock))
                 {
                     isSetexHeading = false;
                 }
@@ -91,7 +90,13 @@ namespace Markdig.Parsers
                 Column = processor.Column,
                 Span = new SourceSpan(startPosition, line.End),
                 ThematicChar = breakChar,
-                ThematicCharCount = breakCharCount
+                ThematicCharCount = breakCharCount,
+                // TODO: should we separate whitespace before/after?
+                //BeforeWhitespace = beforeWhitespace,
+                //AfterWhitespace = processor.PopBeforeWhitespace(processor.CurrentLineStartPosition),
+                LinesBefore = processor.UseLinesBefore(),
+                Content = new StringSlice(line.Text, processor.TriviaStart, line.End, line.NewLine), //include whitespace for now
+                NewLine = processor.Line.NewLine,
             });
             return BlockState.BreakDiscard;
         }

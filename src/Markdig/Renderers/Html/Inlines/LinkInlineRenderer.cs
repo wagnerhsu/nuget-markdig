@@ -3,6 +3,7 @@
 // See the license.txt file in the project root for more information.
 
 using Markdig.Syntax.Inlines;
+using System;
 
 namespace Markdig.Renderers.Html.Inlines
 {
@@ -15,7 +16,31 @@ namespace Markdig.Renderers.Html.Inlines
         /// <summary>
         /// Gets or sets a value indicating whether to always add rel="nofollow" for links or not.
         /// </summary>
-        public bool AutoRelNoFollow { get; set; }
+        [Obsolete("AutoRelNoFollow is obsolete. Please write \"nofollow\" into Property Rel.")]
+        public bool AutoRelNoFollow
+        {
+            get
+            {
+                return Rel is not null && Rel.Contains("nofollow");
+            }
+            set
+            {
+                string rel = "nofollow";
+                if (value && !Rel.Contains(rel))
+                {
+                    Rel = string.IsNullOrEmpty(Rel) ? rel : Rel + $" {rel}";
+                }
+                else if (!value && Rel.Contains(rel))
+                {
+                    Rel = Rel.Replace(rel, string.Empty);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the literal string in property rel for links
+        /// </summary>
+        public string? Rel { get; set; }
 
         protected override void Write(HtmlRenderer renderer, LinkInline link)
         {
@@ -23,7 +48,7 @@ namespace Markdig.Renderers.Html.Inlines
             {
                 renderer.Write(link.IsImage ? "<img src=\"" : "<a href=\"");
                 renderer.WriteEscapeUrl(link.GetDynamicUrl != null ? link.GetDynamicUrl() ?? link.Url : link.Url);
-                renderer.Write("\"");
+                renderer.Write('"');
                 renderer.WriteAttributes(link);
             }
             if (link.IsImage)
@@ -38,7 +63,7 @@ namespace Markdig.Renderers.Html.Inlines
                 renderer.EnableHtmlForInline = wasEnableHtmlForInline;
                 if (renderer.EnableHtmlForInline)
                 {
-                    renderer.Write("\"");
+                    renderer.Write('"');
                 }
             }
 
@@ -46,7 +71,7 @@ namespace Markdig.Renderers.Html.Inlines
             {
                 renderer.Write(" title=\"");
                 renderer.WriteEscape(link.Title);
-                renderer.Write("\"");
+                renderer.Write('"');
             }
 
             if (link.IsImage)
@@ -60,11 +85,11 @@ namespace Markdig.Renderers.Html.Inlines
             {
                 if (renderer.EnableHtmlForInline)
                 {
-                    if (AutoRelNoFollow)
+                    if (!string.IsNullOrWhiteSpace(Rel))
                     {
-                        renderer.Write(" rel=\"nofollow\"");
+                        renderer.Write($" rel=\"{Rel}\"");
                     }
-                    renderer.Write(">");
+                    renderer.Write('>');
                 }
                 renderer.WriteChildren(link);
                 if (renderer.EnableHtmlForInline)
