@@ -13,7 +13,7 @@ namespace Markdig.Parsers
         /// <summary>
         /// Gets the opening characters this parser will be triggered if the character is found.
         /// </summary>
-        char[] OpeningCharacters { get; }
+        char[]? OpeningCharacters { get; }
 
         /// <summary>
         /// Initializes this parser with the specified parser processor.

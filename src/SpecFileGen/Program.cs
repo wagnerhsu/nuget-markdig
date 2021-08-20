@@ -17,7 +17,8 @@ namespace SpecFileGen
         {
             Html,
             Normalize,
-            PlainText
+            PlainText,
+            Roundtrip
         }
 
         class Spec
@@ -36,6 +37,7 @@ namespace SpecFileGen
                 if (rendererType == RendererType.Html) Path += "Specs";
                 else if (rendererType == RendererType.Normalize) Path += "NormalizeSpecs";
                 else if (rendererType == RendererType.PlainText) Path += "PlainTextSpecs";
+                else if (rendererType == RendererType.Roundtrip) Path += "RoundtripSpecs";
                 Path += "/" + fileName;
                 OutputPath = System.IO.Path.ChangeExtension(Path, "generated.cs");
                 Extensions = extensions;
@@ -52,12 +54,18 @@ namespace SpecFileGen
             public PlainTextSpec(string name, string fileName, string extensions)
                 : base(name, fileName, extensions, rendererType: RendererType.PlainText) { }
         }
+        class RoundtripSpec : Spec
+        {
+            public RoundtripSpec(string name, string fileName, string extensions)
+                : base(name, fileName, extensions, rendererType: RendererType.Roundtrip) { }
+        }
 
         // NOTE: Beware of Copy/Pasting spec files - some characters may change (non-breaking space into space)!
         static readonly Spec[] Specs = new[]
         {
             new Spec("CommonMark v. 0.29",  "CommonMark.md",                ""),
             new Spec("Pipe Tables",         "PipeTableSpecs.md",            "pipetables|advanced"),
+            new Spec("GFM Pipe Tables",     "PipeTableGfmSpecs.md",         "gfm-pipetables"),
             new Spec("Footnotes",           "FootnotesSpecs.md",            "footnotes|advanced"),
             new Spec("Generic Attributes",  "GenericAttributesSpecs.md",    "attributes|advanced"),
             new Spec("Emphasis Extra",      "EmphasisExtraSpecs.md",        "emphasisextras|advanced"),
@@ -85,6 +93,8 @@ namespace SpecFileGen
             new NormalizeSpec("Headings", "Headings.md", ""),
 
             new PlainTextSpec("Sample", "SamplePlainText.md", ""),
+
+            new RoundtripSpec("Roundtrip", "CommonMark.md", ""),
         };
 
         static void Main()
@@ -109,20 +119,12 @@ namespace SpecFileGen
                 if (File.Exists(spec.OutputPath))  // If the source hasn't changed, don't bump the generated tag
                 {
                     string previousSource = File.ReadAllText(spec.OutputPath).Replace("\r\n", "\n", StringComparison.Ordinal);
-                    int start = previousSource.IndexOf('\n', StringComparison.Ordinal) + 1;
-                    int previousLength = previousSource.Length - start;
-                    if (start != 0 && previousLength == source.Length)
+                    if (previousSource == source)
                     {
-                        if (previousSource.IndexOf(source, start, previousLength, StringComparison.Ordinal) == start)
-                        {
-                            // The source did not change
-                            continue;
-                        }
+                        continue;
                     }
                 }
-
-                string generated = "// Generated: " + DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + '\n';
-                File.WriteAllText(spec.OutputPath, generated + source);
+                File.WriteAllText(spec.OutputPath, source);
                 anyChanged = true;
             }
 
@@ -183,6 +185,7 @@ namespace SpecFileGen
             Write("namespace Markdig.Tests.Specs.");
             if      (spec.RendererType == RendererType.Normalize) Write("Normalize.");
             else if (spec.RendererType == RendererType.PlainText) Write("PlainText.");
+            else if (spec.RendererType == RendererType.Roundtrip) Write("Roundtrip.");
             Line(CompressedName(spec.Name).Replace('.', '_'));
             Line("{");
 
@@ -333,6 +336,7 @@ namespace SpecFileGen
             if      (rendererType == RendererType.Html)      Write("TestParser");
             else if (rendererType == RendererType.Normalize) Write("TestNormalize");
             else if (rendererType == RendererType.PlainText) Write("TestPlainText");
+            else if (rendererType == RendererType.Roundtrip) Write("TestRoundtrip");
             Write(".TestSpec(\"");
             for (int i = markdownOffset; i < markdownEnd; i++)
             {

@@ -16,7 +16,7 @@ namespace Markdig
     /// <remarks>NOTE: A pipeline is not thread-safe.</remarks>
     public class MarkdownPipelineBuilder
     {
-        private MarkdownPipeline pipeline;
+        private MarkdownPipeline? pipeline;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MarkdownPipeline" /> class.
@@ -44,7 +44,7 @@ namespace Markdig
                 new EscapeInlineParser(),
                 new EmphasisInlineParser(),
                 new CodeInlineParser(),
-                new AutolineInlineParser(),
+                new AutolinkInlineParser(),
                 new LineBreakInlineParser(),
             };
 
@@ -74,14 +74,20 @@ namespace Markdig
         /// <summary>
         /// Gets or sets the debug log.
         /// </summary>
-        public TextWriter DebugLog { get; set; }
+        public TextWriter? DebugLog { get; set; }
+
+        /// <summary>
+        /// True to parse trivia such as whitespace, extra heading characters and unescaped
+        /// string values.
+        /// </summary>
+        public bool TrackTrivia { get; internal set; }
 
         /// <summary>
         /// Occurs when a document has been processed after the <see cref="MarkdownParser.Parse()"/> method.
         /// </summary>
-        public event ProcessDocumentDelegate DocumentProcessed;
+        public event ProcessDocumentDelegate? DocumentProcessed;
 
-        internal ProcessDocumentDelegate GetDocumentProcessed => DocumentProcessed;
+        internal ProcessDocumentDelegate? GetDocumentProcessed => DocumentProcessed;
 
         /// <summary>
         /// Builds a pipeline from this instance. Once the pipeline is build, it cannot be modified.
@@ -102,7 +108,7 @@ namespace Markdig
             // Allow extensions to modify existing BlockParsers, InlineParsers and Renderer
             foreach (var extension in Extensions)
             {
-                if (extension == null)
+                if (extension is null)
                 {
                     ThrowHelper.InvalidOperationException("An extension cannot be null");
                 }
@@ -116,7 +122,8 @@ namespace Markdig
                 DebugLog,
                 GetDocumentProcessed)
             {
-                PreciseSourceLocation = PreciseSourceLocation
+                PreciseSourceLocation = PreciseSourceLocation,
+                TrackTrivia = TrackTrivia,
             };
             return pipeline;
         }

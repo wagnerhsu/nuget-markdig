@@ -1745,10 +1745,10 @@ namespace Markdig.Extensions.Emoji
         /// </summary>
         public EmojiMapping(IDictionary<string, string> shortcodeToUnicode, IDictionary<string, string> smileyToShortcode)
         {
-            if (shortcodeToUnicode == null)
+            if (shortcodeToUnicode is null)
                 ThrowHelper.ArgumentNullException(nameof(shortcodeToUnicode));
 
-            if (smileyToShortcode == null)
+            if (smileyToShortcode is null)
                 ThrowHelper.ArgumentNullException(nameof(smileyToShortcode));
 
             // Build emojis and smileys CompactPrefixTree
@@ -1778,7 +1778,7 @@ namespace Markdig.Extensions.Emoji
                 if (string.IsNullOrEmpty(smiley.Key) || string.IsNullOrEmpty(smiley.Value))
                     ThrowHelper.ArgumentException("The dictionaries cannot contain null or empty keys/values", nameof(smileyToShortcode));
 
-                if (!shortcodeToUnicode.TryGetValue(smiley.Value, out string unicode))
+                if (!shortcodeToUnicode.TryGetValue(smiley.Value, out string? unicode))
                     ThrowHelper.ArgumentException(string.Format("Invalid smiley target: {0} is not present in the emoji shortcodes dictionary", smiley.Value));
 
                 firstChars.Add(smiley.Key[0]);

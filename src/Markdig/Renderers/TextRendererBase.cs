@@ -27,10 +27,9 @@ namespace Markdig.Renderers
         /// <exception cref="ArgumentNullException"></exception>
         protected TextRendererBase(TextWriter writer)
         {
-            if (writer == null) ThrowHelper.ArgumentNullException_writer();
-            this.Writer = writer;
-            // By default we output a newline with '\n' only even on Windows platforms
-            Writer.NewLine = "\n";
+            if (writer is null) ThrowHelper.ArgumentNullException_writer();
+            this.writer = writer;
+            this.writer.NewLine = "\n";
         }
 
         /// <summary>
@@ -42,11 +41,13 @@ namespace Markdig.Renderers
             get { return writer; }
             set
             {
-                if (value == null)
+                if (value is null)
                 {
                     ThrowHelper.ArgumentNullException(nameof(value));
                 }
 
+                // By default we output a newline with '\n' only even on Windows platforms
+                value.NewLine = "\n";
                 writer = value;
             }
         }
@@ -70,11 +71,41 @@ namespace Markdig.Renderers
     /// <seealso cref="RendererBase" />
     public abstract class TextRendererBase<T> : TextRendererBase where T : TextRendererBase<T>
     {
-        private bool previousWasLine;
+        private sealed class Indent
+        {
+            private readonly string? _constant;
+            private readonly string[]? _lineSpecific;
+            private int position;
+
+            internal Indent(string constant)
+            {
+                _constant = constant;
+            }
+
+            internal Indent(string[] lineSpecific)
+            {
+                _lineSpecific = lineSpecific;
+            }
+
+            internal string Next()
+            {
+                if (_constant != null)
+                {
+                    return _constant;
+                }
+
+                //if (_lineSpecific.Count == 0) throw new Exception("Indents empty");
+                if (position == _lineSpecific!.Length) return string.Empty;
+
+                return _lineSpecific![position++];
+            }
+        }
+
+        protected bool previousWasLine;
 #if !NETCORE
         private char[] buffer;
 #endif
-        private readonly List<string> indents;
+        private readonly List<Indent> indents;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TextRendererBase{T}"/> class.
@@ -87,10 +118,10 @@ namespace Markdig.Renderers
 #endif
             // We assume that we are starting as if we had previously a newline
             previousWasLine = true;
-            indents = new List<string>();
+            indents = new List<Indent>();
         }
 
-        internal void Reset()
+        protected internal void Reset()
         {
             if (Writer is StringWriter stringWriter)
             {
@@ -101,6 +132,12 @@ namespace Markdig.Renderers
                 ThrowHelper.InvalidOperationException("Cannot reset this TextWriter instance");
             }
 
+            ResetInternal();
+        }
+
+        internal void ResetInternal()
+        {
+            childrenDepth = 0;
             previousWasLine = true;
             indents.Clear();
         }
@@ -120,8 +157,18 @@ namespace Markdig.Renderers
 
         public void PushIndent(string indent)
         {
-            if (indent == null) ThrowHelper.ArgumentNullException(nameof(indent));
-            indents.Add(indent);
+            if (indent is null) ThrowHelper.ArgumentNullException(nameof(indent));
+            indents.Add(new Indent(indent));
+        }
+
+        public void PushIndent(string[] lineSpecific)
+        {
+            if (indents is null) ThrowHelper.ArgumentNullException(nameof(indents));
+            indents.Add(new Indent(lineSpecific));
+
+            // ensure that indents are written to the output stream
+            // this assumes that calls after PushIndent wil write children content
+            previousWasLine = true;
         }
 
         public void PopIndent()
@@ -137,7 +184,9 @@ namespace Markdig.Renderers
                 previousWasLine = false;
                 for (int i = 0; i < indents.Count; i++)
                 {
-                    Writer.Write(indents[i]);
+                    var indent = indents[i];
+                    var indentText = indent.Next();
+                    Writer.Write(indentText);
                 }
             }
         }
@@ -149,7 +198,7 @@ namespace Markdig.Renderers
         /// <param name="content">The content.</param>
         /// <returns>This instance</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Write(string content)
+        public T Write(string? content)
         {
             WriteIndent();
             previousWasLine = false;
@@ -206,7 +255,7 @@ namespace Markdig.Renderers
         /// <returns>This instance</returns>
         public T Write(string content, int offset, int length)
         {
-            if (content == null)
+            if (content is null)
             {
                 return (T) this;
             }
@@ -252,6 +301,19 @@ namespace Markdig.Renderers
         }
 
         /// <summary>
+        /// Writes a newline.
+        /// </summary>
+        /// <returns>This instance</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T WriteLine(NewLine newLine)
+        {
+            WriteIndent();
+            Writer.Write(newLine.AsString());
+            previousWasLine = true;
+            return (T)this;
+        }
+
+        /// <summary>
         /// Writes a content followed by a newline.
         /// </summary>
         /// <param name="content">The content.</param>
@@ -266,6 +328,20 @@ namespace Markdig.Renderers
         }
 
         /// <summary>
+        /// Writes a content followed by a newline.
+        /// </summary>
+        /// <param name="content">The content.</param>
+        /// <returns>This instance</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T WriteLine(char content)
+        {
+            WriteIndent();
+            previousWasLine = true;
+            Writer.WriteLine(content);
+            return (T)this;
+        }
+
+        /// <summary>
         /// Writes the inlines of a leaf inline.
         /// </summary>
         /// <param name="leafBlock">The leaf block.</param>
@@ -273,16 +349,15 @@ namespace Markdig.Renderers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T WriteLeafInline(LeafBlock leafBlock)
         {
-            if (leafBlock == null) ThrowHelper.ArgumentNullException_leafBlock();
-            var inline = (Inline) leafBlock.Inline;
-            if (inline != null)
+            if (leafBlock is null) ThrowHelper.ArgumentNullException_leafBlock();
+            var inline = (Inline) leafBlock.Inline!;
+          
+            while (inline != null)
             {
-                while (inline != null)
-                {
-                    Write(inline);
-                    inline = inline.NextSibling;
-                }
+                Write(inline);
+                inline = inline.NextSibling;
             }
+            
             return (T) this;
         }
     }

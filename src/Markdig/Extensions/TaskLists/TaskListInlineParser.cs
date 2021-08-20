@@ -40,7 +40,7 @@ namespace Markdig.Extensions.TaskLists
             // [ ]
             // or [x] or [X]
 
-            if (!(processor.Block.Parent is ListItemBlock listItemBlock))
+            if (!(processor.Block!.Parent is ListItemBlock listItemBlock))
             {
                 return false;
             }
@@ -56,7 +56,7 @@ namespace Markdig.Extensions.TaskLists
                 return false;
             }
             // Skip last ]
-            slice.NextChar();
+            slice.SkipChar();
 
             // Create the TaskList
             var taskItem = new TaskList()
@@ -75,7 +75,7 @@ namespace Markdig.Extensions.TaskLists
                 listItemBlock.GetAttributes().AddClass(ListItemClass);
             }
 
-            var listBlock = (ListBlock) listItemBlock.Parent;
+            var listBlock = (ListBlock) listItemBlock.Parent!;
             if (!string.IsNullOrEmpty(ListClass))
             {
                 listBlock.GetAttributes().AddClass(ListClass);

@@ -25,7 +25,7 @@ namespace Markdig.Syntax
         /// Initializes a new instance of the <see cref="ParagraphBlock"/> class.
         /// </summary>
         /// <param name="parser">The parser used to create this block.</param>
-        public ParagraphBlock(BlockParser parser) : base(parser)
+        public ParagraphBlock(BlockParser? parser) : base(parser)
         {
             // Inlines are processed for a paragraph
             ProcessInlines = true;

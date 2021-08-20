@@ -24,7 +24,7 @@ namespace Markdig.Extensions.Tables
         /// Initializes a new instance of the <see cref="TableCell"/> class.
         /// </summary>
         /// <param name="parser">The parser used to create this block.</param>
-        public TableCell(BlockParser parser) : base(parser)
+        public TableCell(BlockParser? parser) : base(parser)
         {
             AllowClose = true;
             ColumnSpan = 1;

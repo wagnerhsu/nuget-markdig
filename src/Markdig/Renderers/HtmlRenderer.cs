@@ -79,12 +79,12 @@ namespace Markdig.Renderers
         /// <summary>
         /// Gets a value to use as the base url for all relative links
         /// </summary>
-        public Uri BaseUrl { get; set; }
+        public Uri? BaseUrl { get; set; }
 
         /// <summary>
         /// Allows links to be rewritten
         /// </summary>
-        public Func<string, string> LinkRewriter { get; set; }
+        public Func<string, string>? LinkRewriter { get; set; }
 
         /// <summary>
         /// Writes the content escaped for HTML.
@@ -92,12 +92,12 @@ namespace Markdig.Renderers
         /// <param name="content">The content.</param>
         /// <returns>This instance</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public HtmlRenderer WriteEscape(string content)
+        public HtmlRenderer WriteEscape(string? content)
         {
-            if (string.IsNullOrEmpty(content))
-                return this;
-
-            WriteEscape(content, 0, content.Length);
+            if (content is { Length: > 0 })
+            {
+                WriteEscape(content, 0, content.Length);
+            }
             return this;
         }
 
@@ -200,9 +200,9 @@ namespace Markdig.Renderers
         /// </summary>
         /// <param name="content">The content.</param>
         /// <returns>This instance</returns>
-        public HtmlRenderer WriteEscapeUrl(string content)
+        public HtmlRenderer WriteEscapeUrl(string? content)
         {
-            if (content == null)
+            if (content is null)
                 return this;
 
             if (BaseUrl != null
@@ -242,7 +242,18 @@ namespace Markdig.Renderers
 
                 if (idnaEncodeDomain)
                 {
-                    string domainName = IdnMapping.GetAscii(content, schemeOffset, endOfDomain - schemeOffset);
+                    string domainName;
+
+                    try
+                    {
+                        domainName = IdnMapping.GetAscii(content, schemeOffset, endOfDomain - schemeOffset);
+                    }
+                    catch
+                    {
+                        // Not a valid IDN, fallback to non-punycode encoding
+                        WriteEscapeUrl(content, schemeOffset, content.Length);
+                        return this;
+                    }
 
                     // Escape the characters (see Commonmark example 327 and think of it with a non-ascii symbol)
                     int previousPosition = 0;
@@ -330,7 +341,7 @@ namespace Markdig.Renderers
         /// <returns></returns>
         public HtmlRenderer WriteAttributes(MarkdownObject markdownObject)
         {
-            if (markdownObject == null) ThrowHelper.ArgumentNullException_markdownObject();
+            if (markdownObject is null) ThrowHelper.ArgumentNullException_markdownObject();
             return WriteAttributes(markdownObject.TryGetAttributes());
         }
 
@@ -340,19 +351,19 @@ namespace Markdig.Renderers
         /// <param name="attributes">The attributes to render.</param>
         /// <param name="classFilter">A class filter used to transform a class into another class at writing time</param>
         /// <returns>This instance</returns>
-        public HtmlRenderer WriteAttributes(HtmlAttributes attributes, Func<string, string> classFilter = null)
+        public HtmlRenderer WriteAttributes(HtmlAttributes? attributes, Func<string, string>? classFilter = null)
         {
-            if (attributes == null)
+            if (attributes is null)
             {
                 return this;
             }
 
             if (attributes.Id != null)
             {
-                Write(" id=\"").WriteEscape(attributes.Id).Write("\"");
+                Write(" id=\"").WriteEscape(attributes.Id).Write('"');
             }
 
-            if (attributes.Classes != null && attributes.Classes.Count > 0)
+            if (attributes.Classes is { Count: > 0 })
             {
                 Write(" class=\"");
                 for (int i = 0; i < attributes.Classes.Count; i++)
@@ -360,21 +371,21 @@ namespace Markdig.Renderers
                     var cssClass = attributes.Classes[i];
                     if (i > 0)
                     {
-                        Write(" ");
+                        Write(' ');
                     }
                     WriteEscape(classFilter != null ? classFilter(cssClass) : cssClass);
                 }
-                Write("\"");
+                Write('"');
             }
 
-            if (attributes.Properties != null && attributes.Properties.Count > 0)
+            if (attributes.Properties is { Count: > 0 })
             {
                 foreach (var property in attributes.Properties)
                 {
-                    Write(" ").Write(property.Key);
-                    Write("=").Write("\"");
+                    Write(' ').Write(property.Key);
+                    Write("=\"");
                     WriteEscape(property.Value ?? "");
-                    Write("\"");
+                    Write('"');
                 }
             }
 
@@ -391,7 +402,7 @@ namespace Markdig.Renderers
         /// <returns>This instance</returns>
         public HtmlRenderer WriteLeafRawLines(LeafBlock leafBlock, bool writeEndOfLines, bool escape, bool softEscape = false)
         {
-            if (leafBlock == null) ThrowHelper.ArgumentNullException_leafBlock();
+            if (leafBlock is null) ThrowHelper.ArgumentNullException_leafBlock();
             if (leafBlock.Lines.Lines != null)
             {
                 var lines = leafBlock.Lines;

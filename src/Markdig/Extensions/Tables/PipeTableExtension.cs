@@ -17,7 +17,7 @@ namespace Markdig.Extensions.Tables
         /// Initializes a new instance of the <see cref="PipeTableExtension"/> class.
         /// </summary>
         /// <param name="options">The options.</param>
-        public PipeTableExtension(PipeTableOptions options = null)
+        public PipeTableExtension(PipeTableOptions? options = null)
         {
             Options = options ?? new PipeTableOptions();
         }
@@ -38,7 +38,7 @@ namespace Markdig.Extensions.Tables
             var lineBreakParser = pipeline.InlineParsers.FindExact<LineBreakInlineParser>();
             if (!pipeline.InlineParsers.Contains<PipeTableParser>())
             {
-                pipeline.InlineParsers.InsertBefore<EmphasisInlineParser>(new PipeTableParser(lineBreakParser, Options));
+                pipeline.InlineParsers.InsertBefore<EmphasisInlineParser>(new PipeTableParser(lineBreakParser!, Options));
             }
         }
 

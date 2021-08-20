@@ -2,7 +2,6 @@
 // This file is licensed under the BSD-Clause 2 license. 
 // See the license.txt file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Markdig.Helpers;
@@ -15,10 +14,10 @@ namespace Markdig.Parsers
     /// <typeparam name="T">Type of the parser</typeparam>
     /// <typeparam name="TState">The type of the parser state.</typeparam>
     /// <seealso cref="OrderedList{T}" />
-    public abstract class ParserList<T, TState> : OrderedList<T> where T : ParserBase<TState>
+    public abstract class ParserList<T, TState> : OrderedList<T> where T : notnull, ParserBase<TState>
     {
         private readonly CharacterMap<T[]> charMap;
-        private readonly T[] globalParsers;
+        private readonly T[]? globalParsers;
 
         protected ParserList(IEnumerable<T> parsersArg) : base(parsersArg)
         {
@@ -28,14 +27,14 @@ namespace Markdig.Parsers
             for (int i = 0; i < Count; i++)
             {
                 var parser = this[i];
-                if (parser == null)
+                if (parser is null)
                 {
                     ThrowHelper.InvalidOperationException("Unexpected null parser found");
                 }
 
                 parser.Initialize();
                 parser.Index = i;
-                if (parser.OpeningCharacters != null && parser.OpeningCharacters.Length != 0)
+                if (parser.OpeningCharacters is { Length: > 0 })
                 {
                     foreach (var openingChar in parser.OpeningCharacters)
                     {
@@ -60,11 +59,11 @@ namespace Markdig.Parsers
             var tempCharMap = new Dictionary<char, T[]>();
             foreach (var parser in this)
             {
-                if (parser.OpeningCharacters != null && parser.OpeningCharacters.Length != 0)
+                if (parser.OpeningCharacters is { Length: > 0 })
                 {
                     foreach (var openingChar in parser.OpeningCharacters)
                     {
-                        if (!tempCharMap.TryGetValue(openingChar, out T[] parsers))
+                        if (!tempCharMap.TryGetValue(openingChar, out T[]? parsers))
                         {
                             parsers = new T[charCounter[openingChar]];
                             tempCharMap[openingChar] = parsers;
@@ -77,7 +76,7 @@ namespace Markdig.Parsers
                 }
                 else
                 {
-                    globalParsers[globalParsers.Length - globalCounter] = parser;
+                    globalParsers![globalParsers.Length - globalCounter] = parser;
                     globalCounter--;
                 }
             }
@@ -88,7 +87,7 @@ namespace Markdig.Parsers
         /// <summary>
         /// Gets the list of global parsers (that don't have any opening characters defined)
         /// </summary>
-        public T[] GlobalParsers => globalParsers;
+        public T[]? GlobalParsers => globalParsers;
 
         /// <summary>
         /// Gets all the opening characters defined.
@@ -101,7 +100,7 @@ namespace Markdig.Parsers
         /// <param name="openingChar">The opening character.</param>
         /// <returns>A list of parsers valid for the specified opening character or null if no parsers registered.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T[] GetParsersForOpeningCharacter(uint openingChar)
+        public T[]? GetParsersForOpeningCharacter(uint openingChar)
         {
             return charMap[openingChar];
         }

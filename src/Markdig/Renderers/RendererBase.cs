@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using Markdig.Helpers;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 
@@ -16,8 +17,9 @@ namespace Markdig.Renderers
     public abstract class RendererBase : IMarkdownRenderer
     {
         private readonly Dictionary<Type, IMarkdownObjectRenderer> renderersPerType;
-        private IMarkdownObjectRenderer previousRenderer;
-        private Type previousObjectType;
+        private IMarkdownObjectRenderer? previousRenderer;
+        private Type? previousObjectType;
+        internal int childrenDepth = 0;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RendererBase"/> class.
@@ -39,12 +41,12 @@ namespace Markdig.Renderers
         /// <summary>
         /// Occurs when before writing an object.
         /// </summary>
-        public event Action<IMarkdownRenderer, MarkdownObject> ObjectWriteBefore;
+        public event Action<IMarkdownRenderer, MarkdownObject>? ObjectWriteBefore;
 
         /// <summary>
         /// Occurs when after writing an object.
         /// </summary>
-        public event Action<IMarkdownRenderer, MarkdownObject> ObjectWriteAfter;
+        public event Action<IMarkdownRenderer, MarkdownObject>? ObjectWriteAfter;
 
         /// <summary>
         /// Writes the children of the specified <see cref="ContainerBlock"/>.
@@ -52,10 +54,12 @@ namespace Markdig.Renderers
         /// <param name="containerBlock">The container block.</param>
         public void WriteChildren(ContainerBlock containerBlock)
         {
-            if (containerBlock == null)
+            if (containerBlock is null)
             {
                 return;
             }
+
+            ThrowHelper.CheckDepthLimit(childrenDepth++);
 
             bool saveIsFirstInContainer = IsFirstInContainer;
             bool saveIsLastInContainer = IsLastInContainer;
@@ -70,6 +74,8 @@ namespace Markdig.Renderers
 
             IsFirstInContainer = saveIsFirstInContainer;
             IsLastInContainer = saveIsLastInContainer;
+
+            childrenDepth--;
         }
 
         /// <summary>
@@ -78,10 +84,12 @@ namespace Markdig.Renderers
         /// <param name="containerInline">The container inline.</param>
         public void WriteChildren(ContainerInline containerInline)
         {
-            if (containerInline == null)
+            if (containerInline is null)
             {
                 return;
             }
+
+            ThrowHelper.CheckDepthLimit(childrenDepth++);
 
             bool saveIsFirstInContainer = IsFirstInContainer;
             bool saveIsLastInContainer = IsLastInContainer;
@@ -91,7 +99,7 @@ namespace Markdig.Renderers
             while (inline != null)
             {
                 IsFirstInContainer = isFirst;
-                IsLastInContainer = inline.NextSibling == null;
+                IsLastInContainer = inline.NextSibling is null;
 
                 Write(inline);
                 inline = inline.NextSibling;
@@ -101,6 +109,8 @@ namespace Markdig.Renderers
 
             IsFirstInContainer = saveIsFirstInContainer;
             IsLastInContainer = saveIsLastInContainer;
+
+            childrenDepth--;
         }
 
         /// <summary>
@@ -109,7 +119,7 @@ namespace Markdig.Renderers
         /// <param name="obj">The Markdown object to write to this renderer.</param>
         public void Write(MarkdownObject obj)
         {
-            if (obj == null)
+            if (obj is null)
             {
                 return;
             }
@@ -119,7 +129,7 @@ namespace Markdig.Renderers
 
             var objectType = obj.GetType();
 
-            IMarkdownObjectRenderer renderer;
+            IMarkdownObjectRenderer? renderer;
 
             // Handle regular renderers
             if (objectType == previousObjectType)
