@@ -2,7 +2,7 @@
   "profiles": {
     "mdtoc": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\temp\\Markdown\\01.md"
+      "commandLineArgs": "C:\\Temp\\Markdown\\Ecis\\Ecis.Dashboard.md"
     }
   }
 }
