@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Markdig.Extensions.JiraLinks;
+using Markdig.Renderers.Roundtrip;
 using Markdig.Syntax;
 using NUnit.Framework;
 
@@ -67,16 +68,29 @@ namespace Markdig.Tests
             TestDescendantsOrder.TestSchemas(specsSyntaxTrees);
         }
 
-        public static void TestSpec(string inputText, string expectedOutputText, string extensions = null, bool plainText = false)
+        [Test]
+        public void ParseEmptyDocumentWithTrackTriviaEnabled()
         {
+            var document = Markdown.Parse("", trackTrivia: true);
+            using var sw = new StringWriter();
+            new RoundtripRenderer(sw).Render(document);
+            Assert.AreEqual("", sw.ToString());
+        }
+
+        public static void TestSpec(string inputText, string expectedOutputText, string extensions = null, bool plainText = false, string context = null)
+        {
+            context ??= string.Empty;
+            if (!string.IsNullOrEmpty(context))
+            {
+                context += "\n";
+            }
             foreach (var pipeline in GetPipeline(extensions))
             {
-                Console.WriteLine($"Pipeline configured with extensions: {pipeline.Key}");
-                TestSpec(inputText, expectedOutputText, pipeline.Value, plainText);
+                TestSpec(inputText, expectedOutputText, pipeline.Value, plainText, context: context + $"Pipeline configured with extensions: {pipeline.Key}");
             }
         }
 
-        public static void TestSpec(string inputText, string expectedOutputText, MarkdownPipeline pipeline, bool plainText = false)
+        public static void TestSpec(string inputText, string expectedOutputText, MarkdownPipeline pipeline, bool plainText = false, string context = null)
         {
             // Uncomment this line to get more debug information for process inlines.
             //pipeline.DebugLog = Console.Out;
@@ -85,20 +99,27 @@ namespace Markdig.Tests
             result = Compact(result);
             expectedOutputText = Compact(expectedOutputText);
 
-            PrintAssertExpected(inputText, result, expectedOutputText);
+            PrintAssertExpected(inputText, result, expectedOutputText, context);
         }
 
-        public static void PrintAssertExpected(string source, string result, string expected)
+        public static void PrintAssertExpected(string source, string result, string expected, string context = null)
         {
-            Console.WriteLine("```````````````````Source");
-            Console.WriteLine(DisplaySpaceAndTabs(source));
-            Console.WriteLine("```````````````````Result");
-            Console.WriteLine(DisplaySpaceAndTabs(result));
-            Console.WriteLine("```````````````````Expected");
-            Console.WriteLine(DisplaySpaceAndTabs(expected));
-            Console.WriteLine("```````````````````");
-            Console.WriteLine();
-            TextAssert.AreEqual(expected, result);
+            if (expected != result)
+            {
+                if (context != null)
+                {
+                    Console.WriteLine(context);
+                }
+                Console.WriteLine("```````````````````Source");
+                Console.WriteLine(DisplaySpaceAndTabs(source));
+                Console.WriteLine("```````````````````Result");
+                Console.WriteLine(DisplaySpaceAndTabs(result));
+                Console.WriteLine("```````````````````Expected");
+                Console.WriteLine(DisplaySpaceAndTabs(expected));
+                Console.WriteLine("```````````````````");
+                Console.WriteLine();
+                TextAssert.AreEqual(expected, result);
+            }
         }
 
         public static IEnumerable<KeyValuePair<string, MarkdownPipeline>> GetPipeline(string extensionsGroupText)
@@ -107,6 +128,8 @@ namespace Markdig.Tests
             if (string.IsNullOrEmpty(extensionsGroupText))
             {
                 yield return new KeyValuePair<string, MarkdownPipeline>("default", new MarkdownPipelineBuilder().Build());
+
+                //yield return new KeyValuePair<string, MarkdownPipeline>("default-trivia", new MarkdownPipelineBuilder().EnableTrackTrivia().Build());
 
                 yield return new KeyValuePair<string, MarkdownPipeline>("advanced", new MarkdownPipelineBuilder()  // Use similar to advanced extension without auto-identifier
                  .UseAbbreviations()

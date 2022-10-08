@@ -63,7 +63,7 @@ namespace SpecFileGen
         // NOTE: Beware of Copy/Pasting spec files - some characters may change (non-breaking space into space)!
         static readonly Spec[] Specs = new[]
         {
-            new Spec("CommonMark v. 0.29",  "CommonMark.md",                ""),
+            new Spec("CommonMarkSpecs",     "CommonMark.md",                ""),
             new Spec("Pipe Tables",         "PipeTableSpecs.md",            "pipetables|advanced"),
             new Spec("GFM Pipe Tables",     "PipeTableGfmSpecs.md",         "gfm-pipetables"),
             new Spec("Footnotes",           "FootnotesSpecs.md",            "footnotes|advanced"),
@@ -99,17 +99,15 @@ namespace SpecFileGen
 
         static void Main()
         {
-            Console.WriteLine("Generating {0} specs ...", Specs.Length);
-
-            bool anyChanged = false;
-            List<Spec> missingSpecs = new List<Spec>();
             int totalTests = 0;
+            bool hasErrors = false;
 
             foreach (var spec in Specs)
             {
                 if (!File.Exists(spec.Path))
                 {
-                    missingSpecs.Add(spec);
+                    EmitError("Could not find the specification file at " + spec.Path);
+                    hasErrors = true;
                     continue;
                 }
 
@@ -119,31 +117,22 @@ namespace SpecFileGen
                 if (File.Exists(spec.OutputPath))  // If the source hasn't changed, don't bump the generated tag
                 {
                     string previousSource = File.ReadAllText(spec.OutputPath).Replace("\r\n", "\n", StringComparison.Ordinal);
-                    if (previousSource == source)
+                    if (previousSource == source && File.GetLastWriteTime(spec.OutputPath) > File.GetLastWriteTime(spec.Path))
                     {
                         continue;
                     }
+                    Console.WriteLine($"Spec changed {spec.Path}. Need to regenerate");
                 }
+                Console.WriteLine($"Generating spec {spec.Name} to {spec.OutputPath}...");
                 File.WriteAllText(spec.OutputPath, source);
-                anyChanged = true;
             }
 
-            if (missingSpecs.Count != 0)
+            if (hasErrors)
             {
-                foreach (var spec in missingSpecs)
-                {
-                    EmitError("Could not find the specification file at " + spec.Path);
-                }
                 Environment.Exit(1);
             }
 
-            if (anyChanged && Environment.GetEnvironmentVariable("CI") != null)
-            {
-                EmitError("Error - Specification files have changed. You must run SpecFileGen when changing specification files.");
-                Environment.Exit(1);
-            }
-
-            Console.WriteLine("There are {0} tests in total", totalTests);
+            Console.WriteLine("There are {0} spec tests in total", totalTests);
         }
         static void EmitError(string error)
         {
@@ -328,10 +317,7 @@ namespace SpecFileGen
             {
                 Indent(3); Write("//");
             }
-
             Line();
-            Indent(3); Line($"Console.WriteLine(\"Example {number}\\nSection {name}\\n\");");
-
             Indent(3);
             if      (rendererType == RendererType.Html)      Write("TestParser");
             else if (rendererType == RendererType.Normalize) Write("TestNormalize");
@@ -351,7 +337,7 @@ namespace SpecFileGen
             }
             Write("\", \"");
             Write(extensions);
-            Line("\");");
+            Line($"\", context: \"Example {number}\\nSection {name}\\n\");");
 
             Indent(2); Line("}");
         }

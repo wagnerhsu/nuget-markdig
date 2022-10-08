@@ -3,7 +3,6 @@
 // See the license.txt file in the project root for more information.
 
 using Markdig.Helpers;
-using Markdig.Parsers;
 
 namespace Markdig.Syntax
 {
@@ -24,8 +23,8 @@ namespace Markdig.Syntax
 
         /// <summary>
         /// Gets or sets the trivia after the <see cref="FencedChar"/>.
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="StringSlice.Empty"/>.
         /// </summary>
         StringSlice TriviaAfterFencedChar { get; set; }
 
@@ -37,15 +36,15 @@ namespace Markdig.Syntax
 
         /// <summary>
         /// Non-escaped <see cref="Info"/> exactly as in source markdown.
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="StringSlice.Empty"/>.
         /// </summary>
         StringSlice UnescapedInfo { get; set; }
 
         /// <summary>
         /// Gets or sets the trivia after the <see cref="Info"/>.
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="StringSlice.Empty"/>.
         /// </summary>
         StringSlice TriviaAfterInfo { get; set; }
 
@@ -57,29 +56,29 @@ namespace Markdig.Syntax
 
         /// <summary>
         /// Non-escaped <see cref="Arguments"/> exactly as in source markdown.
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="StringSlice.Empty"/>.
         /// </summary>
         StringSlice UnescapedArguments { get; set; }
 
         /// <summary>
         /// Gets or sets the trivia after the <see cref="Arguments"/>.
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="StringSlice.Empty"/>.
         /// </summary>
         StringSlice TriviaAfterArguments { get; set; }
 
         /// <summary>
         /// Newline of the line with the opening fenced chars.
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="NewLine.None"/>.
         /// </summary>
         NewLine InfoNewLine { get; set; }
 
         /// <summary>
         /// Trivia before the closing fenced chars
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="StringSlice.Empty"/>.
         /// </summary>
         StringSlice TriviaBeforeClosingFence { get; set; }
 
@@ -91,8 +90,8 @@ namespace Markdig.Syntax
         /// <summary>
         /// Newline after the last line, which is always the line containing the closing fence chars.
         /// "Inherited" from <see cref="Block.NewLine"/>.
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="NewLine.None"/>.
         /// </summary>
         NewLine NewLine { get; set; }
     }

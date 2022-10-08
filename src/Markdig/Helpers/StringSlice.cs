@@ -6,6 +6,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Markdig.Helpers
 {
@@ -36,6 +37,7 @@ namespace Markdig.Helpers
         /// Initializes a new instance of the <see cref="StringSlice"/> struct.
         /// </summary>
         /// <param name="text">The text.</param>
+        /// <param name="newLine">The line separation.</param>
         public StringSlice(string text, NewLine newLine)
         {
             Text = text;
@@ -68,12 +70,22 @@ namespace Markdig.Helpers
         /// <param name="text">The text.</param>
         /// <param name="start">The start.</param>
         /// <param name="end">The end.</param>
+        /// <param name="newLine">The line separation.</param>
         /// <exception cref="ArgumentNullException"></exception>
         public StringSlice(string text, int start, int end, NewLine newLine)
         {
             if (text is null)
                 ThrowHelper.ArgumentNullException_text();
 
+            Text = text;
+            Start = start;
+            End = end;
+            NewLine = newLine;
+        }
+
+        // Internal ctor to skip the null check
+        internal StringSlice(string text, int start, int end, NewLine newLine, bool dummy)
+        {
             Text = text;
             Start = start;
             End = end;
@@ -449,6 +461,25 @@ namespace Markdig.Helpers
                 return string.Empty;
             }
             return text.Substring(start, length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ReadOnlySpan<char> AsSpan()
+        {
+            string text = Text;
+            int start = Start;
+            int length = End - start + 1;
+
+            if (text is null || (ulong)(uint)start + (ulong)(uint)length > (ulong)(uint)text.Length)
+            {
+                return default;
+            }
+
+#if NETCOREAPP3_1_OR_GREATER
+            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref Unsafe.AsRef(text.GetPinnableReference()), start), length);
+#else
+            return text.AsSpan(start, length);
+#endif
         }
 
         /// <summary>

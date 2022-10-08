@@ -5,7 +5,7 @@
 
 namespace System.Diagnostics.CodeAnalysis
 {
-#if !NETCORE || NETCOREAPP2_1
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_1_OR_GREATER
     internal sealed class DoesNotReturnAttribute : Attribute { }
 
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
@@ -15,8 +15,12 @@ namespace System.Diagnostics.CodeAnalysis
 
         public bool ReturnValue { get; }
     }
+
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, Inherited = false)]
+    public sealed class AllowNullAttribute : Attribute { }
 #endif
 
+#if !NET5_0_OR_GREATER
     internal sealed class MemberNotNullAttribute : Attribute
     {
         public MemberNotNullAttribute(string member) => Members = new[] { member };
@@ -25,4 +29,5 @@ namespace System.Diagnostics.CodeAnalysis
 
         public string[] Members { get; }
     }
+#endif
 }

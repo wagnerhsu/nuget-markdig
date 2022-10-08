@@ -3,6 +3,7 @@
 // See the license.txt file in the project root for more information.
 
 using Markdig.Helpers;
+using System;
 using System.Diagnostics;
 
 namespace Markdig.Syntax.Inlines
@@ -14,9 +15,16 @@ namespace Markdig.Syntax.Inlines
     [DebuggerDisplay("`{Content}`")]
     public class CodeInline : LeafInline
     {
-        public CodeInline(string content)
+        private TriviaProperties? _trivia => GetTrivia<TriviaProperties>();
+        private TriviaProperties Trivia => GetOrSetTrivia<TriviaProperties>();
+
+        private LazySubstring _content;
+
+        public CodeInline(string content) : this(new LazySubstring(content)) { }
+
+        internal CodeInline(LazySubstring content)
         {
-            Content = content;
+            _content = content;
         }
 
         /// <summary>
@@ -32,21 +40,24 @@ namespace Markdig.Syntax.Inlines
         /// <summary>
         /// Gets or sets the content of the span.
         /// </summary>
-        public string Content { get; set; }
+        public string Content
+        {
+            get => _content.ToString();
+            set => _content = new LazySubstring(value ?? string.Empty);
+        }
+
+        public ReadOnlySpan<char> ContentSpan => _content.AsSpan();
 
         /// <summary>
         /// Gets or sets the content with trivia and whitespace.
         /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// <see cref="StringSlice.Empty"/>.
         /// </summary>
-        public StringSlice ContentWithTrivia { get; set; }
+        public StringSlice ContentWithTrivia { get => _trivia?.ContentWithTrivia ?? StringSlice.Empty; set => Trivia.ContentWithTrivia = value; }
 
-        /// <summary>
-        /// True if the first and last character of the content enclosed in a backtick `
-        /// is a space.
-        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
-        /// false.
-        /// </summary>
-        public bool FirstAndLastWasSpace { get; set; }
+        private sealed class TriviaProperties
+        {
+            public StringSlice ContentWithTrivia;
+        }
     }
 }

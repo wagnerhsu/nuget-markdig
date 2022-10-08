@@ -4,8 +4,8 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
-using Markdig.Extensions.SelfPipeline;
 using Markdig.Helpers;
 using Markdig.Parsers;
 using Markdig.Renderers;
@@ -19,7 +19,16 @@ namespace Markdig
     /// </summary>
     public static partial class Markdown
     {
-        public static readonly string Version = ((AssemblyFileVersionAttribute) typeof(Markdown).Assembly.GetCustomAttributes(typeof(AssemblyFileVersionAttribute), false)[0]).Version;
+        public static string Version
+        {
+            get
+            {
+                if (_Version == null)
+                    _Version = ((AssemblyFileVersionAttribute)typeof(Markdown).Assembly.GetCustomAttributes(typeof(AssemblyFileVersionAttribute), false).FirstOrDefault())?.Version ?? "Unknown";
+                return _Version;
+            }
+        }
+        private static string? _Version;
 
         internal static readonly MarkdownPipeline DefaultPipeline = new MarkdownPipelineBuilder().Build();
         private static readonly MarkdownPipeline _defaultTrackTriviaPipeline = new MarkdownPipelineBuilder().EnableTrackTrivia().Build();
@@ -31,11 +40,11 @@ namespace Markdig
                 return DefaultPipeline;
             }
 
-            var selfPipeline = pipeline.Extensions.Find<SelfPipelineExtension>();
-            if (selfPipeline is not null)
+            if (pipeline.SelfPipeline is not null)
             {
-                return selfPipeline.CreatePipelineFromInput(markdown);
+                return pipeline.SelfPipeline.CreatePipelineFromInput(markdown);
             }
+
             return pipeline;
         }
 
@@ -120,6 +129,28 @@ namespace Markdig
             renderer.Writer.Flush();
 
             return renderer.Writer.ToString() ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Converts a Markdown document to HTML.
+        /// </summary>
+        /// <param name="document">A Markdown document.</param>
+        /// <param name="writer">The destination <see cref="TextWriter"/> that will receive the result of the conversion.</param>
+        /// <param name="pipeline">The pipeline used for the conversion.</param>
+        /// <returns>The result of the conversion</returns>
+        /// <exception cref="ArgumentNullException">if markdown document variable is null</exception>
+        public static void ToHtml(this MarkdownDocument document, TextWriter writer, MarkdownPipeline? pipeline = null)
+        {
+            if (document is null) ThrowHelper.ArgumentNullException(nameof(document));
+            if (writer is null) ThrowHelper.ArgumentNullException_writer();
+
+            pipeline ??= DefaultPipeline;
+
+            using var rentedRenderer = pipeline.RentHtmlRenderer(writer);
+            HtmlRenderer renderer = rentedRenderer.Instance;
+
+            renderer.Render(document);
+            renderer.Writer.Flush();
         }
 
         /// <summary>

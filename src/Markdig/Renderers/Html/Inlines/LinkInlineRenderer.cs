@@ -25,12 +25,15 @@ namespace Markdig.Renderers.Html.Inlines
             }
             set
             {
-                string rel = "nofollow";
-                if (value && !Rel.Contains(rel))
+                const string rel = "nofollow";
+                if (value)
                 {
-                    Rel = string.IsNullOrEmpty(Rel) ? rel : Rel + $" {rel}";
+                    if (string.IsNullOrEmpty(Rel))
+                        Rel = rel;
+                    else if (!Rel!.Contains(rel))
+                        Rel += $" {rel}";
                 }
-                else if (!value && Rel.Contains(rel))
+                else if (!value && Rel is not null)
                 {
                     Rel = Rel.Replace(rel, string.Empty);
                 }
@@ -48,14 +51,14 @@ namespace Markdig.Renderers.Html.Inlines
             {
                 renderer.Write(link.IsImage ? "<img src=\"" : "<a href=\"");
                 renderer.WriteEscapeUrl(link.GetDynamicUrl != null ? link.GetDynamicUrl() ?? link.Url : link.Url);
-                renderer.Write('"');
+                renderer.WriteRaw('"');
                 renderer.WriteAttributes(link);
             }
             if (link.IsImage)
             {
                 if (renderer.EnableHtmlForInline)
                 {
-                    renderer.Write(" alt=\"");
+                    renderer.WriteRaw(" alt=\"");
                 }
                 var wasEnableHtmlForInline = renderer.EnableHtmlForInline;
                 renderer.EnableHtmlForInline = false;
@@ -63,22 +66,22 @@ namespace Markdig.Renderers.Html.Inlines
                 renderer.EnableHtmlForInline = wasEnableHtmlForInline;
                 if (renderer.EnableHtmlForInline)
                 {
-                    renderer.Write('"');
+                    renderer.WriteRaw('"');
                 }
             }
 
             if (renderer.EnableHtmlForInline && !string.IsNullOrEmpty(link.Title))
             {
-                renderer.Write(" title=\"");
+                renderer.WriteRaw(" title=\"");
                 renderer.WriteEscape(link.Title);
-                renderer.Write('"');
+                renderer.WriteRaw('"');
             }
 
             if (link.IsImage)
             {
                 if (renderer.EnableHtmlForInline)
                 {
-                    renderer.Write(" />");
+                    renderer.WriteRaw(" />");
                 }
             }
             else
@@ -87,9 +90,11 @@ namespace Markdig.Renderers.Html.Inlines
                 {
                     if (!string.IsNullOrWhiteSpace(Rel))
                     {
-                        renderer.Write($" rel=\"{Rel}\"");
+                        renderer.WriteRaw(" rel=\"");
+                        renderer.WriteRaw(Rel);
+                        renderer.WriteRaw('"');
                     }
-                    renderer.Write('>');
+                    renderer.WriteRaw('>');
                 }
                 renderer.WriteChildren(link);
                 if (renderer.EnableHtmlForInline)

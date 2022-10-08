@@ -62,10 +62,10 @@ namespace Markdig.Parsers
 
         private BlockState TryParseTagType7(BlockProcessor state, StringSlice line, int startColumn, int startPosition)
         {
-            var builder = StringBuilderCache.Local();
+            var builder = new ValueStringBuilder(stackalloc char[ValueStringBuilder.StackallocThreshold]);
             var c = line.CurrentChar;
             var result = BlockState.None;
-            if ((c == '/' && HtmlHelper.TryParseHtmlCloseTag(ref line, builder)) || HtmlHelper.TryParseHtmlTagOpenTag(ref line, builder))
+            if ((c == '/' && HtmlHelper.TryParseHtmlCloseTag(ref line, ref builder)) || HtmlHelper.TryParseHtmlTagOpenTag(ref line, ref builder))
             {
                 // Must be followed by whitespace only
                 bool hasOnlySpaces = true;
@@ -90,7 +90,7 @@ namespace Markdig.Parsers
                 }
             }
 
-            builder.Length = 0;
+            builder.Dispose();
             return result;
         }
 
@@ -159,8 +159,8 @@ namespace Markdig.Parsers
 
             int tagIndex = match.Value;
 
-            // Cannot start with </script </pre or </style
-            if ((tagIndex == 49 || tagIndex == 50 || tagIndex == 53))
+            // Cannot start with </script </pre or </style or </textArea
+            if ((tagIndex == 49 || tagIndex == 50 || tagIndex == 53 || tagIndex == 56))
             {
                 if (c == '/' || hasLeadingClose)
                 {
@@ -241,6 +241,15 @@ namespace Markdig.Parsers
                                 htmlBlock.UpdateSpanEnd(index + "</style>".Length);
                                 result = BlockState.Break;
                             }
+                            else
+                            {
+                                index = line.IndexOf("</textarea>", 0, true);
+                                if (index >= 0)
+                                {
+                                    htmlBlock.UpdateSpanEnd(index + "</textarea>".Length);
+                                    result = BlockState.Break;
+                                }
+                            }
                         }
                     }
                     break;
@@ -270,20 +279,26 @@ namespace Markdig.Parsers
 
         private BlockState CreateHtmlBlock(BlockProcessor state, HtmlBlockType type, int startColumn, int startPosition)
         {
-            state.NewBlocks.Push(new HtmlBlock(this)
+            var htmlBlock = new HtmlBlock(this)
             {
                 Column = startColumn,
                 Type = type,
                 // By default, setup to the end of line
                 Span = new SourceSpan(startPosition, startPosition + state.Line.End),
                 //BeforeWhitespace = state.PopBeforeWhitespace(startPosition - 1),
-                LinesBefore = state.UseLinesBefore(),
-                NewLine = state.Line.NewLine,
-            });
+            };
+
+            if (state.TrackTrivia)
+            {
+                htmlBlock.LinesBefore = state.UseLinesBefore();
+                htmlBlock.NewLine = state.Line.NewLine;
+            }
+
+            state.NewBlocks.Push(htmlBlock);
             return BlockState.Continue;
         }
 
-        private static readonly CompactPrefixTree<int> HtmlTags = new(65, 93, 82)
+        private static readonly CompactPrefixTree<int> HtmlTags = new(66, 94, 83)
         {
             { "address", 0 },
             { "article", 1 },
@@ -341,15 +356,16 @@ namespace Markdig.Parsers
             { "style", 53 },    // <=== special group 1
             { "summary", 54 },
             { "table", 55 },
-            { "tbody", 56 },
-            { "td", 57 },
-            { "tfoot", 58 },
-            { "th", 59 },
-            { "thead", 60 },
-            { "title", 61 },
-            { "tr", 62 },
-            { "track", 63 },
-            { "ul", 64 }
+            { "textarea", 56 }, // <=== special group 1
+            { "tbody", 57 },
+            { "td", 58 },
+            { "tfoot", 59 },
+            { "th", 60 },
+            { "thead", 61 },
+            { "title", 62 },
+            { "tr", 63 },
+            { "track", 64 },
+            { "ul", 65 }
         };
     }
 }

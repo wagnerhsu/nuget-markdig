@@ -13,13 +13,25 @@ namespace Markdig.Tests
     public class TestPlayParser
     {
         [Test]
+        public void TestBugWithEmphasisAndTable()
+        {
+            TestParser.TestSpec("**basics | 8:00**", "<p><strong>basics | 8:00</strong></p>", "advanced");
+        }
+
+        [Test]
         public void TestLinksWithCarriageReturn()
         {
-            {
-                var text = "[Link 1][link-1], [link 2][link-2].\r\n\r\n[link-1]: https://example.com\r\n[link-2]: https://example.com";
-                var result = Markdown.ToHtml(text).TrimEnd();
-                Assert.AreEqual("<p><a href=\"https://example.com\">Link 1</a>, <a href=\"https://example.com\">link 2</a>.</p>", result);
-            }
+            var text = "[Link 1][link-1], [link 2][link-2].\r\n\r\n[link-1]: https://example.com\r\n[link-2]: https://example.com";
+            var result = Markdown.ToHtml(text).TrimEnd();
+            Assert.AreEqual("<p><a href=\"https://example.com\">Link 1</a>, <a href=\"https://example.com\">link 2</a>.</p>", result);
+        }
+
+        [Test]
+        public void TestLinksWithTitleAndCarriageReturn()
+        {
+            var text = "[Link 1][link-1], [link 2][link-2].\r\n\r\n[link-1]: https://example.com \"title 1\" \r\n[link-2]: https://example.com \"title 2\"";
+            var result = Markdown.ToHtml(text).TrimEnd();
+            Assert.AreEqual("<p><a href=\"https://example.com\" title=\"title 1\">Link 1</a>, <a href=\"https://example.com\" title=\"title 2\">link 2</a>.</p>", result);
         }
 
         [Test]
@@ -49,7 +61,6 @@ namespace Markdig.Tests
 
 Later in a text we are using HTML and it becomes an abbr tag HTML
 ";
-
             //            var reader = new StringReader(@"> > toto tata
             //> titi toto
             //");
@@ -57,7 +68,7 @@ Later in a text we are using HTML and it becomes an abbr tag HTML
             //var result = Markdown.ToHtml(text, new MarkdownPipeline().UseFootnotes().UseEmphasisExtras());
             var result = Markdown.ToHtml(text, new MarkdownPipelineBuilder().UseAbbreviations().Build());
             //File.WriteAllText("test.html", result, Encoding.UTF8);
-            Console.WriteLine(result);
+            //Console.WriteLine(result);
         }
 
         [Test]

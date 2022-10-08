@@ -4,7 +4,7 @@
 
 using System;
 using System.IO;
-using System.Text;
+using Markdig.Extensions.SelfPipeline;
 using Markdig.Helpers;
 using Markdig.Parsers;
 using Markdig.Renderers;
@@ -13,11 +13,10 @@ namespace Markdig
 {
     /// <summary>
     /// This class is the Markdown pipeline build from a <see cref="MarkdownPipelineBuilder"/>.
+    /// <para>An instance of <see cref="MarkdownPipeline"/> is immutable, thread-safe, and should be reused when parsing multiple inputs.</para>
     /// </summary>
     public sealed class MarkdownPipeline
     {
-        // This class is immutable
-
         /// <summary>
         /// Initializes a new instance of the <see cref="MarkdownPipeline" /> class.
         /// </summary>
@@ -36,6 +35,8 @@ namespace Markdig
             InlineParsers = inlineParsers;
             DebugLog = debugLog;
             DocumentProcessed = documentProcessed;
+
+            SelfPipeline = Extensions.Find<SelfPipelineExtension>();
         }
 
         internal bool PreciseSourceLocation { get; set; }
@@ -53,6 +54,8 @@ namespace Markdig
         internal TextWriter? DebugLog { get; }
 
         internal ProcessDocumentDelegate? DocumentProcessed;
+
+        internal SelfPipelineExtension? SelfPipeline;
 
         /// <summary>
         /// True to parse trivia such as whitespace, extra heading characters and unescaped
@@ -94,9 +97,7 @@ namespace Markdig
 
         internal sealed class HtmlRendererCache : ObjectCache<HtmlRenderer>
         {
-            private const int InitialCapacity = 1024;
-
-            private static readonly StringWriter _dummyWriter = new();
+            private static readonly TextWriter s_dummyWriter = new FastStringWriter();
 
             private readonly MarkdownPipeline _pipeline;
             private readonly bool _customWriter;
@@ -109,7 +110,7 @@ namespace Markdig
 
             protected override HtmlRenderer NewInstance()
             {
-                var writer = _customWriter ? _dummyWriter : new StringWriter(new StringBuilder(InitialCapacity));
+                TextWriter writer = _customWriter ? s_dummyWriter : new FastStringWriter();
                 var renderer = new HtmlRenderer(writer);
                 _pipeline.Setup(renderer);
                 return renderer;
@@ -121,11 +122,11 @@ namespace Markdig
 
                 if (_customWriter)
                 {
-                    instance.Writer = _dummyWriter;
+                    instance.Writer = s_dummyWriter;
                 }
                 else
                 {
-                    ((StringWriter)instance.Writer).GetStringBuilder().Length = 0;
+                    ((FastStringWriter)instance.Writer).Reset();
                 }
             }
         }

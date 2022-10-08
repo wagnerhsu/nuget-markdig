@@ -13,6 +13,9 @@ namespace Markdig.Syntax
     /// <seealso cref="ContainerBlock" />
     public class ListItemBlock : ContainerBlock
     {
+        private TriviaProperties? _trivia => TryGetDerivedTrivia<TriviaProperties>();
+        private TriviaProperties Trivia => GetOrSetDerivedTrivia<TriviaProperties>();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ListItemBlock"/> class.
         /// </summary>
@@ -30,9 +33,14 @@ namespace Markdig.Syntax
 
         /// <summary>
         /// Gets or sets the bullet as parsed in the source document.
-        /// Trivia: only parsed when <see cref="MarkdownParser.TrackTrivia"/> is enabled, otherwise
-        /// <see cref="StringSlice.IsEmpty"/>.
+        /// Trivia: only parsed when <see cref="MarkdownPipeline.TrackTrivia"/> is enabled, otherwise
+        /// <see cref="StringSlice.Empty"/>.
         /// </summary>
-        public StringSlice SourceBullet { get; set; }
+        public StringSlice SourceBullet { get => _trivia?.SourceBullet ?? StringSlice.Empty; set => Trivia.SourceBullet = value; }
+
+        private sealed class TriviaProperties
+        {
+            public StringSlice SourceBullet;
+        }
     }
 }
