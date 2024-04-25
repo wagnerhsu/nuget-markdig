@@ -1,23 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <StartupObject>Markdig.Tests.Program</StartupObject>
-    <SpecExecutable>$(MSBuildProjectDirectory)\..\SpecFileGen\bin\$(Configuration)\net6.0\SpecFileGen.dll</SpecExecutable>
-    <SpecTimestamp>$(MSBuildProjectDirectory)\..\SpecFileGen\bin\$(Configuration)\net6.0\SpecFileGen.timestamp</SpecTimestamp>
+    <SpecExecutable>$(MSBuildProjectDirectory)\..\SpecFileGen\bin\$(Configuration)\net8.0\SpecFileGen.dll</SpecExecutable>
+    <SpecTimestamp>$(MSBuildProjectDirectory)\..\SpecFileGen\bin\$(Configuration)\net8.0\SpecFileGen.timestamp</SpecTimestamp>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
-    <PackageReference Include="NUnit" Version="3.13.3" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="NUnit" Version="4.1.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Markdig\Markdig.csproj" />
     <ProjectReference Include="..\SpecFileGen\SpecFileGen.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
   </ItemGroup>
 
   <ItemGroup>

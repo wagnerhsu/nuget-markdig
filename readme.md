@@ -12,7 +12,7 @@ You can **try Markdig online** and compare it to other implementations on [babel
 
 - **Very fast parser and html renderer** (no-regexp), very lightweight in terms of GC pressure. See benchmarks
 - **Abstract Syntax Tree** with precise source code location for syntax tree, useful when building a Markdown editor.
-  - Checkout [MarkdownEditor for Visual Studio](https://visualstudiogallery.msdn.microsoft.com/eaab33c3-437b-4918-8354-872dfe5d1bfe) powered by Markdig!
+  - Checkout [Markdown Editor v2 for Visual Studio 2022](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.MarkdownEditor2) powered by Markdig!
 - Converter to **HTML**
 - Passing more than **600+ tests** from the latest [CommonMark specs (0.30)](http://spec.commonmark.org/)
 - Includes all the core elements of CommonMark:
@@ -70,7 +70,7 @@ If you are looking for support for an old .NET Framework 3.5 or 4.0, you can dow
 
 While there is not yet a dedicated documentation, you can find from the [specs documentation](src/Markdig.Tests/Specs/readme.md) how to use these extensions.
 
-In the meantime, you can have a "behind the scene" article about Markdig in my blog post ["Implementing a Markdown Engine for .NET"](http://xoofx.com/blog/2016/06/13/implementing-a-markdown-processor-for-dotnet/)
+In the meantime, you can have a "behind the scene" article about Markdig in my blog post ["Implementing a Markdown Engine for .NET"](http://xoofx.github.io/blog/2016/06/13/implementing-a-markdown-processor-for-dotnet/)
 
 ## Download
 
@@ -164,4 +164,4 @@ Some decoding part (e.g HTML [EntityHelper.cs](https://github.com/lunet-io/markd
 Thanks to the work done by @clarkd on the JIRA Link extension (https://github.com/clarkd/MarkdigJiraLinker), now included with this project!
 ## Author
 
-Alexandre MUTEL aka [xoofx](http://xoofx.com)
+Alexandre MUTEL aka [xoofx](http://xoofx.github.io)
