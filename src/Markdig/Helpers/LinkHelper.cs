@@ -2,6 +2,8 @@
 // This file is licensed under the BSD-Clause 2 license. 
 // See the license.txt file in the project root for more information.
 
+using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Markdig.Syntax;
@@ -166,7 +168,7 @@ public static class LinkHelper
         if (!c.IsAlpha())
         {
             // We may have an email char?
-            if (c.IsDigit() || CharHelper.IsEmailUsernameSpecialChar(c))
+            if (CharHelper.IsEmailUsernameSpecialCharOrDigit(c))
             {
                 state = -1;
             }
@@ -286,40 +288,34 @@ public static class LinkHelper
         }
         else
         {
-            // scan an uri            
-            // An absolute URI, for these purposes, consists of a scheme followed by a colon (:) 
-            // followed by zero or more characters other than ASCII whitespace and control characters, <, and >. 
+            // 6.5 Autolinks - https://spec.commonmark.org/0.31.2/#autolinks
+            // An absolute URI, for these purposes, consists of a scheme followed by a colon (:) followed by
+            // zero or more characters other than ASCII control characters, space, <, and >.
             // If the URI includes these characters, they must be percent-encoded (e.g. %20 for a space).
+            //
+            // 2.1 Characters and lines
+            // An ASCII control character is a character between U+0000–1F (both including) or U+007F.
 
-            while (true)
+            text.SkipChar();
+            ReadOnlySpan<char> slice = text.AsSpan();
+
+            Debug.Assert(!slice.Contains('\0'));
+
+            // This set of invalid characters includes '>'.
+            int end = slice.IndexOfAny(CharHelper.InvalidAutoLinkCharacters);
+
+            if ((uint)end < (uint)slice.Length && slice[end] == '>')
             {
-                c = text.NextChar();
-                if (c == '\0')
-                {
-                    break;
-                }
-
-                if (c == '>')
-                {
-                    text.SkipChar();
-                    link = builder.ToString();
-                    return true;
-                }
-
-                // Chars valid for both scheme and email
-                if (c <= 127)
-                {
-                    if (c > ' ' && c != '>')
-                    {
-                        builder.Append(c);
-                    }
-                    else break;
-                }
-                else if (!c.IsSpaceOrPunctuation())
-                {
-                    builder.Append(c);
-                }
-                else break;
+                // We've found '>' and all characters before it are valid.
+#if NET
+                link = string.Concat(builder.AsSpan(), slice.Slice(0, end));
+                builder.Dispose();
+#else
+                builder.Append(slice.Slice(0, end));
+                link = builder.ToString();
+#endif
+                text.Start += end + 1; // +1 to skip '>'
+                return true;
             }
         }
 
@@ -415,7 +411,7 @@ public static class LinkHelper
         {
             // Skip ')'
             text.SkipChar();
-            title ??= string.Empty;
+            // not to normalize nulls into empty strings, since LinkInline.Title property is nullable.
         }
 
         return isValid;
@@ -545,87 +541,70 @@ public static class LinkHelper
             enclosingCharacter = c;
             var closingQuote = c == '(' ? ')' : c;
             bool hasEscape = false;
-            // -1: undefined
-            //  0: has only spaces
-            //  1: has other characters
-            int hasOnlyWhiteSpacesSinceLastLine = -1;
-            while (true)
+            bool isLineBlank = false; // the first line is never blank
+            while ((c = text.NextChar()) != '\0')
             {
-                c = text.NextChar();
-
                 if (c == '\r' || c == '\n')
                 {
-                    if (hasOnlyWhiteSpacesSinceLastLine >= 0)
+                    if (isLineBlank)
                     {
-                        if (hasOnlyWhiteSpacesSinceLastLine == 1)
-                        {
-                            break;
-                        }
-                        hasOnlyWhiteSpacesSinceLastLine = -1;
+                        break;
                     }
+
+                    if (hasEscape)
+                    {
+                        hasEscape = false;
+                        buffer.Append('\\');
+                    }
+
                     buffer.Append(c);
+
                     if (c == '\r' && text.PeekChar() == '\n')
                     {
                         buffer.Append('\n');
+                        text.SkipChar();
                     }
-                    continue;
-                }
 
-                if (c == '\0')
-                {
-                    break;
+                    isLineBlank = true;
                 }
-
-                if (c == closingQuote)
+                else if (hasEscape)
                 {
-                    if (hasEscape)
+                    hasEscape = false;
+
+                    if (!c.IsAsciiPunctuation())
                     {
-                        buffer.Append(closingQuote);
-                        hasEscape = false;
-                        continue;
+                        buffer.Append('\\');
                     }
 
+                    buffer.Append(c);
+                }
+                else if (c == closingQuote)
+                {
                     // Skip last quote
                     text.SkipChar();
-                    goto ReturnValid;
+                    title = buffer.ToString();
+                    return true;
                 }
-
-                if (hasEscape && !c.IsAsciiPunctuation())
-                {
-                    buffer.Append('\\');
-                }
-
-                if (c == '\\')
+                else if (c == '\\')
                 {
                     hasEscape = true;
-                    continue;
+                    isLineBlank = false;
                 }
-
-                hasEscape = false;
-
-                if (c.IsSpaceOrTab())
+                else
                 {
-                    if (hasOnlyWhiteSpacesSinceLastLine < 0)
+                    if (isLineBlank && !c.IsSpaceOrTab())
                     {
-                        hasOnlyWhiteSpacesSinceLastLine = 1;
+                        isLineBlank = false;
                     }
-                }
-                else if (c != '\n' && c != '\r' && text.PeekChar() != '\n')
-                {
-                    hasOnlyWhiteSpacesSinceLastLine = 0;
-                }
 
-                buffer.Append(c);
+                    buffer.Append(c);
+                }
             }
         }
 
         buffer.Dispose();
         title = null;
         return false;
-
-    ReturnValid:
-        title = buffer.ToString();
-        return true;
     }
 
     public static bool TryParseTitleTrivia<T>(ref T text, out string? title, out char enclosingCharacter) where T : ICharIterator
@@ -641,87 +620,70 @@ public static class LinkHelper
             enclosingCharacter = c;
             var closingQuote = c == '(' ? ')' : c;
             bool hasEscape = false;
-            // -1: undefined
-            //  0: has only spaces
-            //  1: has other characters
-            int hasOnlyWhiteSpacesSinceLastLine = -1;
-            while (true)
+            bool isLineBlank = false; // the first line is never blank
+            while ((c = text.NextChar()) != '\0')
             {
-                c = text.NextChar();
-
                 if (c == '\r' || c == '\n')
                 {
-                    if (hasOnlyWhiteSpacesSinceLastLine >= 0)
+                    if (isLineBlank)
                     {
-                        if (hasOnlyWhiteSpacesSinceLastLine == 1)
-                        {
-                            break;
-                        }
-                        hasOnlyWhiteSpacesSinceLastLine = -1;
+                        break;
                     }
+
+                    if (hasEscape)
+                    {
+                        hasEscape = false;
+                        buffer.Append('\\');
+                    }
+
                     buffer.Append(c);
+
                     if (c == '\r' && text.PeekChar() == '\n')
                     {
                         buffer.Append('\n');
+                        text.SkipChar();
                     }
-                    continue;
-                }
 
-                if (c == '\0')
-                {
-                    break;
+                    isLineBlank = true;
                 }
-
-                if (c == closingQuote)
+                else if (hasEscape)
                 {
-                    if (hasEscape)
+                    hasEscape = false;
+
+                    if (!c.IsAsciiPunctuation())
                     {
-                        buffer.Append(closingQuote);
-                        hasEscape = false;
-                        continue;
+                        buffer.Append('\\');
                     }
 
+                    buffer.Append(c);
+                }
+                else if (c == closingQuote)
+                {
                     // Skip last quote
                     text.SkipChar();
-                    goto ReturnValid;
+                    title = buffer.ToString();
+                    return true;
                 }
-
-                if (hasEscape && !c.IsAsciiPunctuation())
-                {
-                    buffer.Append('\\');
-                }
-
-                if (c == '\\')
+                else if (c == '\\')
                 {
                     hasEscape = true;
-                    continue;
+                    isLineBlank = false;
                 }
-
-                hasEscape = false;
-
-                if (c.IsSpaceOrTab())
+                else
                 {
-                    if (hasOnlyWhiteSpacesSinceLastLine < 0)
+                    if (isLineBlank && !c.IsSpaceOrTab())
                     {
-                        hasOnlyWhiteSpacesSinceLastLine = 1;
+                        isLineBlank = false;
                     }
-                }
-                else if (c != '\n' && c != '\r' && text.PeekChar() != '\n')
-                {
-                    hasOnlyWhiteSpacesSinceLastLine = 0;
-                }
 
-                buffer.Append(c);
+                    buffer.Append(c);
+                }
             }
         }
 
         buffer.Dispose();
         title = null;
         return false;
-
-    ReturnValid:
-        title = buffer.ToString();
-        return true;
     }
 
     public static bool TryParseUrl<T>(T text, [NotNullWhen(true)] out string? link) where T : ICharIterator
@@ -758,12 +720,15 @@ public static class LinkHelper
                     break;
                 }
 
-                if (hasEscape && !c.IsAsciiPunctuation())
+                if (hasEscape)
                 {
-                    buffer.Append('\\');
+                    hasEscape = false;
+                    if (!c.IsAsciiPunctuation())
+                    {
+                        buffer.Append('\\');
+                    }
                 }
-
-                if (c == '\\')
+                else if (c == '\\')
                 {
                     hasEscape = true;
                     continue;
@@ -773,8 +738,6 @@ public static class LinkHelper
                 {
                     break;
                 }
-
-                hasEscape = false;
 
                 buffer.Append(c);
 
@@ -814,20 +777,21 @@ public static class LinkHelper
 
                 if (!isAutoLink)
                 {
-                    if (hasEscape && !c.IsAsciiPunctuation())
+                    if (hasEscape)
                     {
-                        buffer.Append('\\');
+                        hasEscape = false;
+                        if (!c.IsAsciiPunctuation())
+                        {
+                            buffer.Append('\\');
+                        }
                     }
-
                     // If we have an escape
-                    if (c == '\\')
+                    else if (c == '\\')
                     {
                         hasEscape = true;
                         c = text.NextChar();
                         continue;
                     }
-
-                    hasEscape = false;
                 }
 
                 if (IsEndOfUri(c, isAutoLink))
@@ -905,12 +869,15 @@ public static class LinkHelper
                     break;
                 }
 
-                if (hasEscape && !c.IsAsciiPunctuation())
+                if (hasEscape)
                 {
-                    buffer.Append('\\');
+                    hasEscape = false;
+                    if (!c.IsAsciiPunctuation())
+                    {
+                        buffer.Append('\\');
+                    }
                 }
-
-                if (c == '\\')
+                else if (c == '\\')
                 {
                     hasEscape = true;
                     continue;
@@ -920,8 +887,6 @@ public static class LinkHelper
                 {
                     break;
                 }
-
-                hasEscape = false;
 
                 buffer.Append(c);
 
@@ -961,20 +926,21 @@ public static class LinkHelper
 
                 if (!isAutoLink)
                 {
-                    if (hasEscape && !c.IsAsciiPunctuation())
+                    if (hasEscape)
                     {
-                        buffer.Append('\\');
+                        hasEscape = false;
+                        if (!c.IsAsciiPunctuation())
+                        {
+                            buffer.Append('\\');
+                        }
                     }
-
                     // If we have an escape
-                    if (c == '\\')
+                    else if (c == '\\')
                     {
                         hasEscape = true;
                         c = text.NextChar();
                         continue;
                     }
-
-                    hasEscape = false;
                 }
 
                 if (IsEndOfUri(c, isAutoLink))
@@ -1036,7 +1002,7 @@ public static class LinkHelper
         return c == '\0' || c.IsSpaceOrTab() || c.IsControl() || (isAutoLink && c == '<'); // TODO: specs unclear. space is strict or relaxed? (includes tabs?)
     }
 
-    public static bool IsValidDomain(string link, int prefixLength)
+    public static bool IsValidDomain(string link, int prefixLength, bool allowDomainWithoutPeriod = false)
     {
         // https://github.github.com/gfm/#extended-www-autolink
         // A valid domain consists of alphanumeric characters, underscores (_), hyphens (-) and periods (.).
@@ -1049,22 +1015,22 @@ public static class LinkHelper
         bool segmentHasCharacters = false;
         int lastUnderscoreSegment = -1;
 
-        for (int i = prefixLength; i < link.Length; i++)
+        for (int i = prefixLength; (uint)i < (uint)link.Length; i++)
         {
             char c = link[i];
 
-            if (c == '.') // New segment
-            {
-                if (!segmentHasCharacters)
-                    return false;
-
-                segmentCount++;
-                segmentHasCharacters = false;
-                continue;
-            }
-
             if (!c.IsAlphaNumeric())
             {
+                if (c == '.') // New segment
+                {
+                    if (!segmentHasCharacters)
+                        return false;
+
+                    segmentCount++;
+                    segmentHasCharacters = false;
+                    continue;
+                }
+
                 if (c == '/' || c == '?' || c == '#' || c == ':') // End of domain name
                     break;
 
@@ -1072,7 +1038,7 @@ public static class LinkHelper
                 {
                     lastUnderscoreSegment = segmentCount;
                 }
-                else if (c != '-' && c.IsSpaceOrPunctuation())
+                else if (c != '-' && CharHelper.IsSpaceOrPunctuationForGFMAutoLink(c))
                 {
                     // An invalid character has been found
                     return false;
@@ -1082,7 +1048,7 @@ public static class LinkHelper
             segmentHasCharacters = true;
         }
 
-        return segmentCount != 1 && // At least one dot was present
+        return (segmentCount != 1 || allowDomainWithoutPeriod) && // At least one dot was present
             segmentHasCharacters && // Last segment has valid characters
             segmentCount - lastUnderscoreSegment >= 2; // No underscores are present in the last two segments of the domain
     }
@@ -1159,7 +1125,7 @@ public static class LinkHelper
             c = text.NextChar();
         }
 
-        if (c != '\0' && c != '\n' && c != '\r' && text.PeekChar() != '\n')
+        if (c != '\0' && c != '\n' && c != '\r')
         {
             // If we were able to parse the url but the title doesn't end with space, 
             // we are still returning a valid definition
@@ -1299,7 +1265,7 @@ public static class LinkHelper
             c = text.NextChar();
         }
 
-        if (c != '\0' && c != '\n' && c != '\r' && text.PeekChar() != '\n')
+        if (c != '\0' && c != '\n' && c != '\r')
         {
             // If we were able to parse the url but the title doesn't end with space, 
             // we are still returning a valid definition

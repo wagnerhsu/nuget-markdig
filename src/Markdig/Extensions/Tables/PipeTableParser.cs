@@ -48,6 +48,7 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
         }
 
         var c = slice.CurrentChar;
+        var isNewLineFollowedByPipe = (c == '\n' || c == '\r') && slice.PeekChar() == '|';
 
         // If we have not a delimiter on the first line of a paragraph, don't bother to continue
         // tracking other delimiters on following lines
@@ -60,18 +61,17 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
 
         if (tableState is null)
         {
-
             // A table could be preceded by an empty line or a line containing an inline
             // that has not been added to the stack, so we consider this as a valid
             // start for a table. Typically, with this, we can have an attributes {...}
             // starting on the first line of a pipe table, even if the first line
             // doesn't have a pipe
-            if (processor.Inline != null && (localLineIndex > 0 || c == '\n' || c == '\r'))
+            if (processor.Inline != null && (localLineIndex > 0 || c == '\n' || c == '\r') && !isNewLineFollowedByPipe)
             {
                 return false;
             }
 
-            if (processor.Inline is null)
+            if (processor.Inline is null || isNewLineFollowedByPipe)
             {
                 isFirstLineEmpty = true;
             }
@@ -196,6 +196,16 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
         // Continue
         if (tableState is null || container is null || tableState.IsInvalidTable || !tableState.LineHasPipe ) //|| tableState.LineIndex != state.LocalLineIndex)
         {
+            if (tableState is not null)
+            {
+                foreach (var inline in tableState.ColumnAndLineDelimiters)
+                {
+                    if (inline is PipeTableDelimiterInline pipeDelimiter)
+                    {
+                        pipeDelimiter.ReplaceByLiteral();
+                    }
+                }
+            }
             return true;
         }
 
@@ -280,6 +290,8 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
             tableState.EndOfLines.Add(endOfTable);
         }
 
+        int lastPipePos = 0;
+
         // Cell loop
         // Reconstruct the table from the delimiters
         TableRow? row = null;
@@ -302,6 +314,12 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
                 if (pipeSeparator != null && (delimiter.PreviousSibling is null || delimiter.PreviousSibling is LineBreakInline))
                 {
                     delimiter.Remove();
+                    if (table.Span.IsEmpty)
+                    {
+                        table.Span = delimiter.Span;
+                        table.Line = delimiter.Line;
+                        table.Column = delimiter.Column;
+                    }
                     continue;
                 }
             }
@@ -354,6 +372,7 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
                     // If the delimiter is a pipe, we need to remove it from the tree
                     // so that previous loop looking for a parent will not go further on subsequent cells
                     delimiter.Remove();
+                    lastPipePos = delimiter.Span.End;
                 }
 
                 // We trim whitespace at the beginning and ending of the cell
@@ -421,6 +440,11 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
             }
         }
 
+        if (lastPipePos > table.Span.End)
+        {
+          table.UpdateSpanEnd(lastPipePos);
+        }
+
         // Once we are done with the cells, we can remove all end of lines in the table tree
         foreach (var endOfLine in tableState.EndOfLines)
         {
@@ -467,9 +491,10 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
         return false;
     }
 
-    private static bool ParseHeaderString(Inline? inline, out TableColumnAlign? align)
+    private static bool ParseHeaderString(Inline? inline, out TableColumnAlign? align, out int delimiterCount)
     {
         align = 0;
+        delimiterCount = 0;
         var literal = inline as LiteralInline;
         if (literal is null)
         {
@@ -478,7 +503,7 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
 
         // Work on a copy of the slice
         var line = literal.Content;
-        if (TableHelper.ParseColumnHeader(ref line, '-', out align))
+        if (TableHelper.ParseColumnHeader(ref line, '-', out align, out delimiterCount))
         {
             if (line.CurrentChar != '\0')
             {
@@ -493,7 +518,8 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
     private List<TableColumnDefinition>? FindHeaderRow(List<Inline> delimiters)
     {
         bool isValidRow = false;
-        List<TableColumnDefinition>? aligns = null;
+        int totalDelimiterCount = 0;
+        List<TableColumnDefinition>? columnDefinitions = null;
         for (int i = 0; i < delimiters.Count; i++)
         {
             if (!IsLine(delimiters[i]))
@@ -515,18 +541,19 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
 
                 // Check the left side of a `|` delimiter
                 TableColumnAlign? align = null;
+                int delimiterCount = 0;
                 if (delimiter.PreviousSibling != null &&
                     !(delimiter.PreviousSibling is LiteralInline li && li.Content.IsEmptyOrWhitespace()) && // ignore parsed whitespace
-                    !ParseHeaderString(delimiter.PreviousSibling, out align))
+                    !ParseHeaderString(delimiter.PreviousSibling, out align, out delimiterCount))
                 {
                     break;
                 }
 
                 // Create aligns until we may have a header row
 
-                aligns ??= new List<TableColumnDefinition>();
-
-                aligns.Add(new TableColumnDefinition() { Alignment =  align });
+                columnDefinitions ??= new List<TableColumnDefinition>();
+                totalDelimiterCount += delimiterCount;
+                columnDefinitions.Add(new TableColumnDefinition() { Alignment =  align, Width = delimiterCount});
 
                 // If this is the last delimiter, we need to check the right side of the `|` delimiter
                 if (nextDelimiter is null)
@@ -542,13 +569,13 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
                         break;
                     }
 
-                    if (!ParseHeaderString(nextSibling, out align))
+                    if (!ParseHeaderString(nextSibling, out align, out delimiterCount))
                     {
                         break;
                     }
-
+                    totalDelimiterCount += delimiterCount;
                     isValidRow = true;
-                    aligns.Add(new TableColumnDefinition() { Alignment = align });
+                    columnDefinitions.Add(new TableColumnDefinition() { Alignment = align, Width = delimiterCount});
                     break;
                 }
 
@@ -562,7 +589,27 @@ public class PipeTableParser : InlineParser, IPostInlineProcessor
             break;
         }
 
-        return isValidRow ? aligns : null;
+        // calculate the width of the columns in percent based on the delimiter count
+        if (!isValidRow || columnDefinitions == null)
+        {
+            return null;
+        }
+
+        if (Options.InferColumnWidthsFromSeparator)
+        {
+            foreach (var columnDefinition in columnDefinitions)
+            {
+                columnDefinition.Width = (columnDefinition.Width * 100) / totalDelimiterCount;
+            }
+        }
+        else
+        {
+            foreach (var columnDefinition in columnDefinitions)
+            {
+                columnDefinition.Width = 0;
+            }
+        }
+        return columnDefinitions;
     }
 
     private static bool IsLine(Inline inline)

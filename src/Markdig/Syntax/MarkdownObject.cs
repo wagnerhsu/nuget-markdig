@@ -143,7 +143,7 @@ public abstract class MarkdownObject : IMarkdownObject
     private protected T? GetTrivia<T>() where T : class
     {
         object? trivia = _attachedDatas?.Trivia;
-        return trivia is null ? null : Unsafe.As<T>(trivia);
+        return Unsafe.As<T>(trivia);
     }
 
     private protected T GetOrSetTrivia<T>() where T : class, new()
@@ -153,7 +153,7 @@ public abstract class MarkdownObject : IMarkdownObject
         return Unsafe.As<T>(storage.Trivia);
     }
 
-    private class DataEntriesAndTrivia
+    private sealed class DataEntriesAndTrivia
     {
         private struct DataEntry(object key, object value)
         {

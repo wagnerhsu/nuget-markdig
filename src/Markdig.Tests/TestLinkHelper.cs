@@ -82,6 +82,22 @@ public class TestLinkHelper
     }
 
     [Test]
+    public void TestTitleMultiline()
+    {
+        var text = new StringSlice("'this\ris\r\na\ntitle'");
+        Assert.True(LinkHelper.TryParseTitle(ref text, out string title, out _));
+        Assert.AreEqual("this\ris\r\na\ntitle", title);
+    }
+
+    [Test]
+    public void TestTitleMultilineWithSpaceAndBackslash()
+    {
+        var text = new StringSlice("'a\n\\ \\\ntitle'");
+        Assert.True(LinkHelper.TryParseTitle(ref text, out string title, out _));
+        Assert.AreEqual("a\n\\ \\\ntitle", title);
+    }
+
+    [Test]
     public void TestUrlAndTitle()
     {
         //                           0         1         2         3
@@ -96,26 +112,26 @@ public class TestLinkHelper
     }
 
     [Test]
-    public void TestUrlAndTitleEmpty()
+    public void TestUrlEmptyAndTitleNull()
     {
         //                           01234
         var text = new StringSlice(@"(<>)A");
         Assert.True(LinkHelper.TryParseInlineLink(ref text, out string link, out string title, out SourceSpan linkSpan, out SourceSpan titleSpan));
         Assert.AreEqual(string.Empty, link);
-        Assert.AreEqual(string.Empty, title);
+        Assert.AreEqual(null, title);
         Assert.AreEqual(new SourceSpan(1, 2), linkSpan);
         Assert.AreEqual(SourceSpan.Empty, titleSpan);
         Assert.AreEqual('A', text.CurrentChar);
     }
 
     [Test]
-    public void TestUrlAndTitleEmpty2()
+    public void TestUrlEmptyAndTitleNull2()
     {
         //                           012345
         var text = new StringSlice(@"( <> )A");
         Assert.True(LinkHelper.TryParseInlineLink(ref text, out string link, out string title, out SourceSpan linkSpan, out SourceSpan titleSpan));
         Assert.AreEqual(string.Empty, link);
-        Assert.AreEqual(string.Empty, title);
+        Assert.AreEqual(null, title);
         Assert.AreEqual(new SourceSpan(2, 3), linkSpan);
         Assert.AreEqual(SourceSpan.Empty, titleSpan);
         Assert.AreEqual('A', text.CurrentChar);
@@ -142,7 +158,7 @@ public class TestLinkHelper
         var text = new StringSlice(@"()A");
         Assert.True(LinkHelper.TryParseInlineLink(ref text, out string link, out string title, out SourceSpan linkSpan, out SourceSpan titleSpan));
         Assert.AreEqual(string.Empty, link);
-        Assert.AreEqual(string.Empty, title);
+        Assert.AreEqual(null, title);
         Assert.AreEqual(SourceSpan.Empty, linkSpan);
         Assert.AreEqual(SourceSpan.Empty, titleSpan);
         Assert.AreEqual('A', text.CurrentChar);
@@ -228,6 +244,13 @@ public class TestLinkHelper
         Assert.AreEqual(new SourceSpan(7, 11), urlSpan);
         Assert.AreEqual(new SourceSpan(13, 19), titleSpan);
 
+    }
+
+    [Test]
+    public void TestlLinkReferenceDefinitionInvalid()
+    {
+        var text = new StringSlice("[foo]: /url (title) x\n");
+        Assert.False(LinkHelper.TryParseLinkReferenceDefinition(ref text, out _, out _, out _, out _, out _, out _));
     }
 
     [Test]

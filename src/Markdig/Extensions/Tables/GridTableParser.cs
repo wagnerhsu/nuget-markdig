@@ -1,10 +1,11 @@
 // Copyright (c) Alexandre Mutel. All rights reserved.
-// This file is licensed under the BSD-Clause 2 license. 
+// This file is licensed under the BSD-Clause 2 license.
 // See the license.txt file in the project root for more information.
 
 using Markdig.Helpers;
 using Markdig.Parsers;
 using Markdig.Syntax;
+using System.Linq;
 
 namespace Markdig.Extensions.Tables;
 
@@ -43,7 +44,7 @@ public class GridTableParser : BlockParser
             }
 
             // Parse a column alignment
-            if (!TableHelper.ParseColumnHeader(ref line, '-', out TableColumnAlign? columnAlign))
+            if (!TableHelper.ParseColumnHeader(ref line, '-', out TableColumnAlign? columnAlign, out _))
             {
                 return BlockState.None;
             }
@@ -60,7 +61,12 @@ public class GridTableParser : BlockParser
         }
         // Store the line (if we need later to build a ParagraphBlock because the GridTable was in fact invalid)
         tableState.AddLine(ref processor.Line);
-        var table = new Table(this);
+        var table = new Table(this)
+        {
+            Line = processor.LineIndex,
+            Column = processor.Column,
+            Span = { Start = lineStart }
+        };
         table.SetData(typeof(GridTableState), tableState);
 
         // Calculate the total width of all columns
@@ -94,10 +100,12 @@ public class GridTableParser : BlockParser
         tableState.AddLine(ref processor.Line);
         if (processor.CurrentChar == '+')
         {
+            gridTable.UpdateSpanEnd(processor.Line.End);
             return HandleNewRow(processor, tableState, gridTable);
         }
         if (processor.CurrentChar == '|')
         {
+            gridTable.UpdateSpanEnd(processor.Line.End);
             return HandleContents(processor, tableState, gridTable);
         }
         TerminateCurrentRow(processor, tableState, gridTable, true);
@@ -135,6 +143,7 @@ public class GridTableParser : BlockParser
     private static void SetRowSpanState(List<GridTableState.ColumnSlice> columns, StringSlice line, out bool isHeaderRow, out bool hasRowSpan)
     {
         var lineStart = line.Start;
+        var lineEnd = line.End;
         isHeaderRow = line.PeekChar() == '=' || line.PeekChar(2) == '=';
         hasRowSpan = false;
         foreach (var columnSlice in columns)
@@ -142,7 +151,7 @@ public class GridTableParser : BlockParser
             if (columnSlice.CurrentCell != null)
             {
                 line.Start = lineStart + columnSlice.Start + 1;
-                line.End = lineStart + columnSlice.End - 1;
+                line.End = Math.Min(lineStart + columnSlice.End - 1, lineEnd);
                 line.Trim();
                 if (line.IsEmptyOrWhitespace() || !IsRowSeparator(line))
                 {
@@ -181,8 +190,18 @@ public class GridTableParser : BlockParser
             var columnSlice = columns[i];
             if (columnSlice.CurrentCell != null)
             {
-                currentRow ??= new TableRow();
-                
+                if (currentRow == null)
+                {
+                    TableCell firstCell = columns.First(c => c.CurrentCell != null).CurrentCell!;
+                    TableCell lastCell = columns.Last(c => c.CurrentCell != null).CurrentCell!;
+
+                    currentRow ??= new TableRow()
+                    {
+                        Span = new SourceSpan(firstCell.Span.Start, lastCell.Span.End),
+                        Line = firstCell.Line
+                    };
+                }
+
                 // If this cell does not already belong to a row
                 if (columnSlice.CurrentCell.Parent is null)
                 {
@@ -256,7 +275,7 @@ public class GridTableParser : BlockParser
                 {
                     sliceForCell.End = line.Start + columnEnd - 1;
                 }
-                else if (line.PeekCharExtra(line.End) == '|')
+                else if (line.PeekCharExtra(line.End - line.Start) == '|')
                 {
                     sliceForCell.End = line.End - 1;
                 }
@@ -270,7 +289,10 @@ public class GridTableParser : BlockParser
                     columnSlice.CurrentCell = new TableCell(this)
                     {
                         ColumnSpan = columnSlice.CurrentColumnSpan,
-                        ColumnIndex = i
+                        ColumnIndex = i,
+                        Column = columnSlice.Start,
+                        Line = processor.LineIndex,
+                        Span = new SourceSpan(line.Start + columnSlice.Start, line.Start + columnSlice.End)
                     };
 
                     columnSlice.BlockProcessor ??= processor.CreateChild();
@@ -280,7 +302,8 @@ public class GridTableParser : BlockParser
                 }
                 // Process the content of the cell
                 columnSlice.BlockProcessor!.LineIndex = processor.LineIndex;
-                columnSlice.BlockProcessor.ProcessLine(sliceForCell);
+
+                columnSlice.BlockProcessor.ProcessLinePart(sliceForCell, sliceForCell.Start - line.Start);
             }
 
             // Go to next column
